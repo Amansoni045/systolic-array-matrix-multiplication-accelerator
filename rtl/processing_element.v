@@ -33,13 +33,13 @@ module processing_element (
 
         if (!rst_n) begin
 
-            a_out <= 0;
-            b_out <= 0;
+            a_out <= 8'sd0;
+            b_out <= 8'sd0;
 
-            a_valid_out <= 0;
-            b_valid_out <= 0;
+            a_valid_out <= 1'b0;
+            b_valid_out <= 1'b0;
 
-            acc_out <= 0;
+            acc_out <= 32'sd0;
 
         end
 

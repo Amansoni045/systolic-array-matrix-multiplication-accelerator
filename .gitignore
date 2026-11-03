@@ -1,4 +1,3 @@
-# Compiled simulation executables and build outputs
 *.out
 *.vvp
 *.o
@@ -6,20 +5,20 @@
 *.exe
 *.bin
 *.hex
+*_sim
+simulation/*_sim
+simulation/*.vvp
 
-# Waveform dump files
 *.vcd
 *.fst
 *.ghw
 simulation/waveforms/*
 !simulation/waveforms/.gitkeep
 
-# Simulation logs and run results
 *.log
 simulation/results/*
 !simulation/results/.gitkeep
 
-# Python cache and environment files
 __pycache__/
 *.py[cod]
 *$py.class
@@ -32,7 +31,6 @@ htmlcov/
 env/
 venv/
 
-# Operating system temporary files
 .DS_Store
 .DS_Store?
 ._*
@@ -44,6 +42,4 @@ ehthumbs.db
 *.swp
 *.swo
 
-# Preserve empty directory tracking
 !.gitkeep
-
