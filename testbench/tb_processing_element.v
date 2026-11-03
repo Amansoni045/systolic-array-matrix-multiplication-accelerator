@@ -195,12 +195,14 @@ module tb_processing_element;
         @(negedge clk);
 
         if (acc_out !== 32'sd0)
-            $fatal(1, "Test 8 Failed: Accumulator clear priority");
+            $fatal(1, "Test 8 Failed: clear_acc did not take priority over MAC! Expected 0, got %0d", acc_out);
 
         clear_acc = 1'b0;
 
         a_in = 8'sd3;
         b_in = 8'sd7;
+        a_valid_in = 1'b1;
+        b_valid_in = 1'b1;
 
         @(negedge clk);
 
@@ -211,22 +213,6 @@ module tb_processing_element;
             $fatal(1, "Test 8 Failed: Expected 21, got %0d", acc_out);
 
         $display("PASS: Test 8 - Accumulator clearing and MAC priority");
-
-        if (acc_out !== 32'sd0)
-            $fatal(1, "Test 8 Failed: clear_acc did not reset accumulator to 0! Got %0d", acc_out);
-
-        clear_acc = 1'b0;
-        a_in = 8'sd3;
-        b_in = 8'sd7;
-        a_valid_in = 1'b1;
-        b_valid_in = 1'b1;
-        @(negedge clk);
-        a_valid_in = 1'b0;
-        b_valid_in = 1'b0;
-
-        if (acc_out !== 32'sd21)
-            $fatal(1, "Test 8 Failed: Operation after clear failed. Expected 21, got %0d", acc_out);
-        $display("PASS: Test 8 - Accumulator clearing after nonzero value and priority over MAC");
 
         a_in = 8'sd42;
         b_in = -8'sd84;
