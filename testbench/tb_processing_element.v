@@ -185,11 +185,32 @@ module tb_processing_element;
         $display("PASS: Test 7 - A valid and B invalid (accumulator unchanged)");
 
         clear_acc = 1'b1;
+
         a_in = 8'sd7;
         b_in = 8'sd7;
+
         a_valid_in = 1'b1;
         b_valid_in = 1'b1;
+
         @(negedge clk);
+
+        if (acc_out !== 32'sd0)
+            $fatal(1, "Test 8 Failed: Accumulator clear priority");
+
+        clear_acc = 1'b0;
+
+        a_in = 8'sd3;
+        b_in = 8'sd7;
+
+        @(negedge clk);
+
+        a_valid_in = 1'b0;
+        b_valid_in = 1'b0;
+
+        if (acc_out !== 32'sd21)
+            $fatal(1, "Test 8 Failed: Expected 21, got %0d", acc_out);
+
+        $display("PASS: Test 8 - Accumulator clearing and MAC priority");
 
         if (acc_out !== 32'sd0)
             $fatal(1, "Test 8 Failed: clear_acc did not reset accumulator to 0! Got %0d", acc_out);
