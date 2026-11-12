@@ -32,6 +32,10 @@ module matrix_controller (
     reg [1:0] k_cnt;   // LOAD sub-counter: k = 0..3
     reg [2:0] d_cnt;   // DRAIN sub-counter: d = 0..5
 
+    // busy: asserted in CLEAR/LOAD/DRAIN states; cleared on done pulse in DRAIN->IDLE.
+    // done: one-cycle pulse asserted exactly on the transition from DRAIN when d_cnt==5.
+    // Both busy and done are registered outputs updated in the single always block below.
+
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             state     <= STATE_IDLE;
