@@ -32,4 +32,59 @@ module matrix_controller (
     reg [1:0] k_cnt;   // LOAD sub-counter: k = 0..3
     reg [2:0] d_cnt;   // DRAIN sub-counter: d = 0..5
 
+    always @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            state     <= STATE_IDLE;
+            k_cnt     <= 2'd0;
+            d_cnt     <= 3'd0;
+            busy      <= 1'b0;
+            done      <= 1'b0;
+            clear_acc <= 1'b0;
+            a_out     <= 32'd0;
+            b_out     <= 32'd0;
+            a_valid   <= 4'd0;
+            b_valid   <= 4'd0;
+            result    <= 512'd0;
+        end else begin
+            // Default: deassert single-cycle signals
+            done      <= 1'b0;
+            clear_acc <= 1'b0;
+
+            case (state)
+                // ----------------------------------------------------------------
+                STATE_IDLE: begin
+                    busy    <= 1'b0;
+                    a_valid <= 4'd0;
+                    b_valid <= 4'd0;
+                    if (start) begin
+                        busy      <= 1'b1;
+                        clear_acc <= 1'b1;
+                        state     <= STATE_CLEAR;
+                    end
+                end
+
+                // ----------------------------------------------------------------
+                // CLEAR state: clear_acc was asserted this cycle (posedge).
+                // Transition to LOAD on the next cycle; deassert clear_acc.
+                STATE_CLEAR: begin
+                    clear_acc <= 1'b0;
+                    k_cnt     <= 2'd0;
+                    state     <= STATE_LOAD;
+                end
+
+                // ----------------------------------------------------------------
+                STATE_LOAD: begin
+                    // Placeholder — implemented in next commit
+                end
+
+                // ----------------------------------------------------------------
+                STATE_DRAIN: begin
+                    // Placeholder — implemented in next commit
+                end
+
+                default: state <= STATE_IDLE;
+            endcase
+        end
+    end
+
 endmodule
