@@ -32,9 +32,6 @@ module matrix_controller (
     reg [1:0] k_cnt;   // LOAD sub-counter: k = 0..3
     reg [2:0] d_cnt;   // DRAIN sub-counter: d = 0..5
 
-    // Helper integer for loop unrolling
-    integer r, c;
-
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             state     <= STATE_IDLE;
@@ -83,19 +80,13 @@ module matrix_controller (
                     a_valid <= 4'b1111;
                     b_valid <= 4'b1111;
 
-                    // Row 0: a_out[7:0]   = A[0][k] = a_flat[8*(4*0+k) +: 8]
-                    // Row 1: a_out[15:8]  = A[1][k] = a_flat[8*(4*1+k) +: 8]
-                    // Row 2: a_out[23:16] = A[2][k] = a_flat[8*(4*2+k) +: 8]
-                    // Row 3: a_out[31:24] = A[3][k] = a_flat[8*(4*3+k) +: 8]
+                    // Row lanes: a_out[8*r +: 8] = A[r][k]
                     a_out[8*0 +: 8] <= a_flat[8*(4*0 + k_cnt) +: 8];
                     a_out[8*1 +: 8] <= a_flat[8*(4*1 + k_cnt) +: 8];
                     a_out[8*2 +: 8] <= a_flat[8*(4*2 + k_cnt) +: 8];
                     a_out[8*3 +: 8] <= a_flat[8*(4*3 + k_cnt) +: 8];
 
-                    // Col 0: b_out[7:0]   = B[k][0] = b_flat[8*(4*k+0) +: 8]
-                    // Col 1: b_out[15:8]  = B[k][1] = b_flat[8*(4*k+1) +: 8]
-                    // Col 2: b_out[23:16] = B[k][2] = b_flat[8*(4*k+2) +: 8]
-                    // Col 3: b_out[31:24] = B[k][3] = b_flat[8*(4*k+3) +: 8]
+                    // Col lanes: b_out[8*c +: 8] = B[k][c]
                     b_out[8*0 +: 8] <= b_flat[8*(4*k_cnt + 0) +: 8];
                     b_out[8*1 +: 8] <= b_flat[8*(4*k_cnt + 1) +: 8];
                     b_out[8*2 +: 8] <= b_flat[8*(4*k_cnt + 2) +: 8];
@@ -103,6 +94,7 @@ module matrix_controller (
 
                     if (k_cnt == 2'd3) begin
                         k_cnt <= 2'd0;
+                        d_cnt <= 3'd0;
                         state <= STATE_DRAIN;
                     end else begin
                         k_cnt <= k_cnt + 2'd1;
@@ -110,8 +102,21 @@ module matrix_controller (
                 end
 
                 // ----------------------------------------------------------------
+                // DRAIN state: valids deasserted, let operands propagate through array.
+                // 6 drain cycles (d=0..5). After d==5, latch result and return to IDLE.
                 STATE_DRAIN: begin
-                    // Placeholder — implemented in next commit
+                    a_valid <= 4'd0;
+                    b_valid <= 4'd0;
+
+                    if (d_cnt == 3'd5) begin
+                        // All results ready — latch and signal done
+                        result <= acc_in;
+                        done   <= 1'b1;
+                        busy   <= 1'b0;
+                        state  <= STATE_IDLE;
+                    end else begin
+                        d_cnt <= d_cnt + 3'd1;
+                    end
                 end
 
                 default: state <= STATE_IDLE;
