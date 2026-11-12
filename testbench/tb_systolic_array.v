@@ -152,7 +152,40 @@ module tb_systolic_array;
     end
 
     // -------------------------------------------------------------------------
-    // Reset sequence
+    // Test case 1: Identity × M = M
+    // -------------------------------------------------------------------------
+    task test_identity_times_matrix;
+        integer ti, tj;
+        begin
+            // A = 4x4 identity; B = arbitrary matrix
+            for (ti = 0; ti < 4; ti = ti + 1)
+                for (tj = 0; tj < 4; tj = tj + 1) begin
+                    A[ti][tj] = (ti == tj) ? 1 : 0;
+                    B[ti][tj] = 4*ti + tj + 1;   // 1..16
+                end
+            run_test;
+            $display("  identity x M: I*M should equal M");
+        end
+    endtask
+
+    // -------------------------------------------------------------------------
+    // Test case 2: All-zeros matrices
+    // -------------------------------------------------------------------------
+    task test_zero_matrices;
+        integer zi, zj;
+        begin
+            for (zi = 0; zi < 4; zi = zi + 1)
+                for (zj = 0; zj < 4; zj = zj + 1) begin
+                    A[zi][zj] = 0;
+                    B[zi][zj] = 0;
+                end
+            run_test;
+            $display("  zero x zero: all outputs should be 0");
+        end
+    endtask
+
+    // -------------------------------------------------------------------------
+    // Reset sequence and main test driver
     // -------------------------------------------------------------------------
     initial begin
         rst_n = 0;
@@ -161,7 +194,6 @@ module tb_systolic_array;
         rst_n = 1;
         @(negedge clk);
 
-        // Tests added in subsequent commits
         run_all_tests;
 
         if (errors == 0)
@@ -173,7 +205,9 @@ module tb_systolic_array;
 
     task run_all_tests;
         begin
-            // Placeholder — test tasks added in commits 8-11
+            test_identity_times_matrix;   // test 0
+            test_zero_matrices;           // test 1
+            // Additional tests added in subsequent commits
         end
     endtask
 
