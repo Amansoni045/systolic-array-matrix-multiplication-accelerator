@@ -130,12 +130,35 @@ module tb_systolic_array;
     endtask
 
     // Full run: pack -> start -> wait done -> check
+    // Also verifies done is a single-cycle pulse (not stuck high).
+    integer done_pulse_count;
     task run_test;
+        integer ck;
         begin
             pack_matrices;
             compute_expected;
+            done_pulse_count = 0;
             issue_start;
-            wait_done;
+            // Count done pulses across the entire operation window
+            wait_cyc = 0;
+            @(posedge clk);
+            while (!done && wait_cyc < 200) begin
+                @(posedge clk);
+                wait_cyc = wait_cyc + 1;
+            end
+            if (!done) begin
+                $display("ERROR test %0d: timeout waiting for done", test_num);
+                errors = errors + 1;
+            end else begin
+                done_pulse_count = done_pulse_count + 1;
+                // Verify done is not still high next cycle
+                @(posedge clk);
+                #1;
+                if (done) begin
+                    $display("FAIL test %0d: done remained high for >1 cycle", test_num);
+                    errors = errors + 1;
+                end
+            end
             check_result;
             if (errors == 0)
                 $display("PASS test %0d", test_num);
