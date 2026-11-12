@@ -152,16 +152,16 @@ module tb_systolic_array;
     end
 
     // -------------------------------------------------------------------------
-    // Test case 1: Identity × M = M
+    // Test case 0: Identity × M = M
     // -------------------------------------------------------------------------
     task test_identity_times_matrix;
         integer ti, tj;
         begin
-            // A = 4x4 identity; B = arbitrary matrix
+            // A = 4x4 identity; B = sequential 1..16
             for (ti = 0; ti < 4; ti = ti + 1)
                 for (tj = 0; tj < 4; tj = tj + 1) begin
                     A[ti][tj] = (ti == tj) ? 1 : 0;
-                    B[ti][tj] = 4*ti + tj + 1;   // 1..16
+                    B[ti][tj] = 4*ti + tj + 1;
                 end
             run_test;
             $display("  identity x M: I*M should equal M");
@@ -169,7 +169,7 @@ module tb_systolic_array;
     endtask
 
     // -------------------------------------------------------------------------
-    // Test case 2: All-zeros matrices
+    // Test case 1: All-zeros matrices
     // -------------------------------------------------------------------------
     task test_zero_matrices;
         integer zi, zj;
@@ -181,6 +181,84 @@ module tb_systolic_array;
                 end
             run_test;
             $display("  zero x zero: all outputs should be 0");
+        end
+    endtask
+
+    // -------------------------------------------------------------------------
+    // Test case 2: Known 4×4 multiply with specific positive values
+    // -------------------------------------------------------------------------
+    task test_known_positive;
+        integer ki, kj;
+        begin
+            // A = [[1,2,3,4],[5,6,7,8],[9,10,11,12],[13,14,15,16]]
+            // B = [[16,15,14,13],[12,11,10,9],[8,7,6,5],[4,3,2,1]]
+            for (ki = 0; ki < 4; ki = ki + 1)
+                for (kj = 0; kj < 4; kj = kj + 1) begin
+                    A[ki][kj] = 4*ki + kj + 1;      //  1..16
+                    B[ki][kj] = 16 - (4*ki + kj);   // 16..1
+                end
+            run_test;
+            $display("  known positive 4x4 multiply");
+        end
+    endtask
+
+    // -------------------------------------------------------------------------
+    // Test case 3: Signed (negative) values
+    // -------------------------------------------------------------------------
+    task test_signed_values;
+        integer si, sj;
+        begin
+            // Mix of -128..127 boundary values
+            for (si = 0; si < 4; si = si + 1)
+                for (sj = 0; sj < 4; sj = sj + 1) begin
+                    A[si][sj] = ((si + sj) % 2 == 0) ? -128 : 127;
+                    B[si][sj] = ((si + sj) % 2 == 0) ?  127 : -128;
+                end
+            run_test;
+            $display("  signed extreme values (-128/127)");
+        end
+    endtask
+
+    // -------------------------------------------------------------------------
+    // Test case 4: Mixed positive and negative values
+    // -------------------------------------------------------------------------
+    task test_mixed_signs;
+        integer mi, mj;
+        begin
+            for (mi = 0; mi < 4; mi = mi + 1)
+                for (mj = 0; mj < 4; mj = mj + 1) begin
+                    A[mi][mj] = (mi % 2 == 0) ? (mi*4 + mj + 1) : -(mi*4 + mj + 1);
+                    B[mi][mj] = (mj % 2 == 0) ? (mi*4 + mj + 1) : -(mi*4 + mj + 1);
+                end
+            run_test;
+            $display("  mixed positive/negative values");
+        end
+    endtask
+
+    // -------------------------------------------------------------------------
+    // Test case 5: Back-to-back operations
+    // -------------------------------------------------------------------------
+    task test_back_to_back;
+        integer bi, bj;
+        integer done_count;
+        begin
+            // First multiplication
+            for (bi = 0; bi < 4; bi = bi + 1)
+                for (bj = 0; bj < 4; bj = bj + 1) begin
+                    A[bi][bj] = bi + bj + 1;
+                    B[bi][bj] = bi - bj;
+                end
+            run_test;
+            $display("  back-to-back op 1");
+
+            // Second multiplication immediately after (no extra idle cycles)
+            for (bi = 0; bi < 4; bi = bi + 1)
+                for (bj = 0; bj < 4; bj = bj + 1) begin
+                    A[bi][bj] = -1 * (bi + 1);
+                    B[bi][bj] = bj + 2;
+                end
+            run_test;
+            $display("  back-to-back op 2");
         end
     endtask
 
@@ -207,7 +285,11 @@ module tb_systolic_array;
         begin
             test_identity_times_matrix;   // test 0
             test_zero_matrices;           // test 1
-            // Additional tests added in subsequent commits
+            test_known_positive;          // test 2
+            test_signed_values;           // test 3
+            test_mixed_signs;             // test 4
+            test_back_to_back;            // tests 5 & 6
+            // Reset-during-operation and stability tests added in next commit
         end
     endtask
 
