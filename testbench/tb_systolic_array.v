@@ -157,7 +157,6 @@ module tb_systolic_array;
     task test_identity_times_matrix;
         integer ti, tj;
         begin
-            // A = 4x4 identity; B = sequential 1..16
             for (ti = 0; ti < 4; ti = ti + 1)
                 for (tj = 0; tj < 4; tj = tj + 1) begin
                     A[ti][tj] = (ti == tj) ? 1 : 0;
@@ -190,12 +189,10 @@ module tb_systolic_array;
     task test_known_positive;
         integer ki, kj;
         begin
-            // A = [[1,2,3,4],[5,6,7,8],[9,10,11,12],[13,14,15,16]]
-            // B = [[16,15,14,13],[12,11,10,9],[8,7,6,5],[4,3,2,1]]
             for (ki = 0; ki < 4; ki = ki + 1)
                 for (kj = 0; kj < 4; kj = kj + 1) begin
-                    A[ki][kj] = 4*ki + kj + 1;      //  1..16
-                    B[ki][kj] = 16 - (4*ki + kj);   // 16..1
+                    A[ki][kj] = 4*ki + kj + 1;
+                    B[ki][kj] = 16 - (4*ki + kj);
                 end
             run_test;
             $display("  known positive 4x4 multiply");
@@ -208,7 +205,6 @@ module tb_systolic_array;
     task test_signed_values;
         integer si, sj;
         begin
-            // Mix of -128..127 boundary values
             for (si = 0; si < 4; si = si + 1)
                 for (sj = 0; sj < 4; sj = sj + 1) begin
                     A[si][sj] = ((si + sj) % 2 == 0) ? -128 : 127;
@@ -236,13 +232,11 @@ module tb_systolic_array;
     endtask
 
     // -------------------------------------------------------------------------
-    // Test case 5: Back-to-back operations
+    // Test cases 5 & 6: Back-to-back operations
     // -------------------------------------------------------------------------
     task test_back_to_back;
         integer bi, bj;
-        integer done_count;
         begin
-            // First multiplication
             for (bi = 0; bi < 4; bi = bi + 1)
                 for (bj = 0; bj < 4; bj = bj + 1) begin
                     A[bi][bj] = bi + bj + 1;
@@ -251,7 +245,6 @@ module tb_systolic_array;
             run_test;
             $display("  back-to-back op 1");
 
-            // Second multiplication immediately after (no extra idle cycles)
             for (bi = 0; bi < 4; bi = bi + 1)
                 for (bj = 0; bj < 4; bj = bj + 1) begin
                     A[bi][bj] = -1 * (bi + 1);
@@ -259,6 +252,102 @@ module tb_systolic_array;
                 end
             run_test;
             $display("  back-to-back op 2");
+        end
+    endtask
+
+    // -------------------------------------------------------------------------
+    // Test case 7: Reset during operation — DUT must recover cleanly
+    // -------------------------------------------------------------------------
+    task test_reset_during_operation;
+        integer ri2, rj2, n;
+        begin
+            // Set up a valid matrix pair
+            for (ri2 = 0; ri2 < 4; ri2 = ri2 + 1)
+                for (rj2 = 0; rj2 < 4; rj2 = rj2 + 1) begin
+                    A[ri2][rj2] = ri2 + 1;
+                    B[ri2][rj2] = rj2 + 1;
+                end
+            pack_matrices;
+
+            // Start operation
+            @(negedge clk); start = 1;
+            @(posedge clk); @(negedge clk); start = 0;
+
+            // Wait a few cycles into the operation, then apply reset
+            repeat(4) @(posedge clk);
+            @(negedge clk); rst_n = 0;
+            @(posedge clk);
+
+            // Verify busy and done go low during reset
+            #1;
+            if (busy !== 0 || done !== 0) begin
+                $display("FAIL test %0d: busy=%b done=%b should be 0 during reset",
+                         test_num, busy, done);
+                errors = errors + 1;
+            end
+
+            @(negedge clk); rst_n = 1;
+            // Wait for DUT to stabilise out of reset
+            repeat(2) @(posedge clk);
+
+            // Now run a clean operation and check correctness
+            compute_expected;
+            issue_start;
+            wait_done;
+            check_result;
+
+            if (errors == 0)
+                $display("PASS test %0d (reset-during-operation)", test_num);
+            test_num = test_num + 1;
+        end
+    endtask
+
+    // -------------------------------------------------------------------------
+    // Test case 8: Result stability — result stays stable after done until next start
+    // -------------------------------------------------------------------------
+    task test_result_stability;
+        integer si2, sj2, n;
+        reg [511:0] captured;
+        integer got, exp_val;
+        begin
+            // Simple known matrix
+            for (si2 = 0; si2 < 4; si2 = si2 + 1)
+                for (sj2 = 0; sj2 < 4; sj2 = sj2 + 1) begin
+                    A[si2][sj2] = si2 + 1;
+                    B[si2][sj2] = (si2 == sj2) ? 1 : 0;   // B = identity
+                end
+            compute_expected;
+            pack_matrices;
+            issue_start;
+            wait_done;
+
+            // Capture result right at done
+            @(negedge clk);
+            captured = result;
+
+            // Wait 10 extra cycles — result must not change
+            repeat(10) @(posedge clk);
+            #1;
+            if (result !== captured) begin
+                $display("FAIL test %0d: result changed after done without new start", test_num);
+                errors = errors + 1;
+            end else begin
+                // Also verify values are correct
+                for (si2 = 0; si2 < 4; si2 = si2 + 1)
+                    for (sj2 = 0; sj2 < 4; sj2 = sj2 + 1) begin
+                        got     = $signed(result[32*(4*si2+sj2) +: 32]);
+                        exp_val = C_exp[si2][sj2];
+                        if (got !== exp_val) begin
+                            $display("FAIL test %0d stability C[%0d][%0d]: exp %0d got %0d",
+                                     test_num, si2, sj2, exp_val, got);
+                            errors = errors + 1;
+                        end
+                    end
+            end
+
+            if (errors == 0)
+                $display("PASS test %0d (result stability)", test_num);
+            test_num = test_num + 1;
         end
     endtask
 
@@ -289,7 +378,8 @@ module tb_systolic_array;
             test_signed_values;           // test 3
             test_mixed_signs;             // test 4
             test_back_to_back;            // tests 5 & 6
-            // Reset-during-operation and stability tests added in next commit
+            test_reset_during_operation;  // test 7
+            test_result_stability;        // test 8
         end
     endtask
 
