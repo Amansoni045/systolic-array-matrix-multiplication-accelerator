@@ -196,3 +196,77 @@ The array test ends with a `PASS: 105 matrices, ...` message if successful and
 terminates with `$fatal` on mismatches. These commands have not yet been executed
 in the implementation environment because Icarus Verilog is unavailable.
 
+---
+
+## Member 3: Controller, Top-level, and Verification
+
+### Controller Schedule Summary
+
+The `matrix_controller` drives the `systolic_array` with the following precise cycle
+schedule (all transitions on rising edges of `clk`):
+
+| Cycle from `start` | State  | Action                                      |
+|--------------------|--------|---------------------------------------------|
+| 0 (start detected) | CLEAR  | Assert `clear_acc=1`, `busy=1`              |
+| 1                  | LOAD k=0 | Drive A[r][0] / B[0][c], `valids=1111`  |
+| 2                  | LOAD k=1 | Drive A[r][1] / B[1][c]                 |
+| 3                  | LOAD k=2 | Drive A[r][2] / B[2][c]                 |
+| 4                  | LOAD k=3 | Drive A[r][3] / B[3][c]                 |
+| 5–10               | DRAIN d=0..5 | `valids=0000`, operands propagate    |
+| 11                 | IDLE   | Latch `result <= acc_in`, pulse `done=1`, `busy=0` |
+
+Total latency from `start` to `done`: **12 clock cycles**.
+
+The controller supplies **unskewed** inputs — it does NOT pre-skew the matrix
+streams. The `systolic_array` module handles all internal lane staggering (row `r`
+delayed by `r` clocks, column `c` delayed by `c` clocks).
+
+Indexing convention:
+- `a_flat[8*(4*r+c) +: 8]` = `A[r][c]`  (row-major)
+- `b_flat[8*(4*r+c) +: 8]` = `B[r][c]`  (row-major)
+- `result[32*(4*r+c) +: 32]` = `C[r][c]` (row-major, signed 32-bit)
+
+### Running the System Integration Testbench
+
+```bash
+mkdir -p simulation/results simulation/waveforms
+iverilog -g2005 -Wall -s tb_systolic_array \
+    -o simulation/results/top.vvp \
+    rtl/processing_element.v \
+    rtl/systolic_array.v \
+    rtl/matrix_controller.v \
+    rtl/systolic_array_top.v \
+    testbench/tb_systolic_array.v
+vvp simulation/results/top.vvp
+```
+
+The testbench covers 9 test cases:
+0. Identity × M = M
+1. Zero × Zero = Zero
+2. Known positive 4×4 multiply
+3. Signed extreme values (−128 / 127)
+4. Mixed positive and negative values
+5–6. Back-to-back operations (no idle between multiplications)
+7. Reset during active operation — DUT must recover cleanly
+8. Result stability — output holds unchanged until next `start`
+
+Each test case verifies the `done` pulse is exactly one cycle wide. On mismatch
+the testbench prints the failing element and increments an error counter; the
+final line reports `ALL TESTS PASSED` or the number of failures.
+
+### Python Golden Model
+
+```bash
+python3 verification/golden_model.py
+```
+
+This script:
+1. Generates 40 test vectors (20 corner cases + 20 random) in `verification/test_vectors/`.
+2. Runs every vector through `matmul_4x4()` and self-checks against the stored expected output.
+3. Exports a `$readmemh`-compatible hex file (`test_002_readmemh.hex`) for use in directed tests.
+4. Demonstrates `verify_verilog_output()` by packing a known result and verifying it.
+
+The `verify_verilog_output(result_hex_512bit, A, B)` function accepts the hex dump
+of the 512-bit `acc_out` bus (LSB-first, C[0][0] in the least-significant 32-bit
+word), unpacks 16 signed 32-bit words, and checks each against `matmul_4x4(A, B)`.
+
