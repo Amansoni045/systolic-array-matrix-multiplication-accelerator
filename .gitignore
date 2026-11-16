@@ -43,3 +43,20 @@ ehthumbs.db
 *.swo
 
 !.gitkeep
+
+# Keep the final voiced presentation; retain source recordings only locally.
+docs/video/voiceovers/
+docs/video/.build/
+docs/video/*_normalized.wav
+docs/video/final_voiceover.wav
+docs/video/preview_*.jpg
+docs/video/export_*.png
+
+# Superseded presentation exports and generated editing notes.
+docs/video/MCA_Prototype_Captioned_1080p.mp4
+docs/video/MCA_Captions.srt
+docs/video/MCA_Voiceover_Guide.md
+docs/video/MCA_Final_Edit_Notes.json
+
+# The PDF, LaTeX, Markdown and figures are the maintained report deliverables.
+report/*.html
