@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Design, Implementation, and Verification of a 4x4 Systolic Array Matrix Multiplication Accelerator: Phase 1</title>
+<style>
+  @page {
+    size: letter;
+    margin: 0.7in 0.6in 0.7in 0.6in;
+  }
+  body {
+    font-family: "Times New Roman", Times, Georgia, serif;
+    font-size: 9.8pt;
+    line-height: 1.18;
+    color: #000000;
+    margin: 0;
+    padding: 0;
+    background: #ffffff;
+    text-rendering: optimizeLegibility;
+  }
+  
+  /* Title & Author Block (Spans 2 columns) */
+  .title-block {
+    text-align: center;
+    margin-bottom: 14pt;
+  }
+  .title-block h1 {
+    font-size: 19pt;
+    font-weight: bold;
+    margin: 0 0 8pt 0;
+    line-height: 1.15;
+  }
+  .authors {
+    font-size: 10.5pt;
+    margin: 0 0 3pt 0;
+  }
+  .affiliation {
+    font-size: 9pt;
+    font-style: italic;
+    color: #222222;
+    margin-bottom: 3pt;
+  }
+  .emails {
+    font-size: 8.5pt;
+    font-family: "Courier New", Courier, monospace;
+    color: #333333;
+  }
+
+  /* Two Column Container */
+  .columns-container {
+    column-count: 2;
+    column-gap: 0.28in;
+    column-fill: balance;
+    text-align: justify;
+  }
+
+  /* Abstract & Index Terms */
+  .abstract-container {
+    margin-bottom: 10pt;
+  }
+  .abstract-heading {
+    font-weight: bold;
+    font-style: italic;
+  }
+  .index-terms {
+    font-weight: bold;
+    font-style: italic;
+    margin-top: 4pt;
+  }
+
+  /* Headings */
+  h2 {
+    font-size: 10pt;
+    font-variant: small-caps;
+    text-align: center;
+    font-weight: bold;
+    margin-top: 11pt;
+    margin-bottom: 4pt;
+    border-bottom: 0.5pt solid #000;
+    padding-bottom: 1pt;
+    letter-spacing: 0.5px;
+  }
+  h3 {
+    font-size: 9.5pt;
+    font-style: italic;
+    font-weight: bold;
+    margin-top: 8pt;
+    margin-bottom: 2pt;
+    text-align: left;
+  }
+
+  p {
+    margin: 0 0 6pt 0;
+    text-indent: 14pt;
+  }
+  p.no-indent {
+    text-indent: 0;
+  }
+
+  /* Equations */
+  .equation {
+    text-align: center;
+    margin: 5pt 0;
+    font-style: italic;
+    font-size: 9.5pt;
+  }
+  .eq-num {
+    float: right;
+    font-style: normal;
+  }
+
+  /* Tables */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 8pt 0;
+    font-size: 8pt;
+    text-align: center;
+  }
+  caption {
+    font-size: 8pt;
+    font-variant: small-caps;
+    font-weight: bold;
+    margin-bottom: 4pt;
+    letter-spacing: 0.5px;
+  }
+  th {
+    border-top: 1.2pt solid #000;
+    border-bottom: 0.8pt solid #000;
+    padding: 3pt 2pt;
+    font-weight: bold;
+  }
+  td {
+    padding: 2.5pt 2pt;
+    border-bottom: 0.4pt solid #e0e0e0;
+  }
+  tr.bottom-rule td {
+    border-bottom: 1.2pt solid #000;
+  }
+
+  /* Figures */
+  figure {
+    margin: 8pt 0;
+    text-align: center;
+    break-inside: avoid;
+  }
+  figure img {
+    max-width: 100%;
+    height: auto;
+    border: 0.5pt solid #cbd5e1;
+    border-radius: 2px;
+  }
+  figcaption {
+    font-size: 8pt;
+    text-align: justify;
+    margin-top: 3pt;
+    line-height: 1.15;
+  }
+  figcaption strong {
+    font-weight: bold;
+  }
+
+  /* Full Width Elements spanning both columns */
+  .full-width {
+    column-span: all;
+    margin: 10pt 0;
+  }
+
+  /* Lists */
+  ol, ul {
+    margin: 0 0 6pt 0;
+    padding-left: 14pt;
+  }
+  li {
+    margin-bottom: 3pt;
+  }
+
+  /* Code / Monospace */
+  code {
+    font-family: "Courier New", Courier, monospace;
+    font-size: 8.5pt;
+    background-color: #f1f5f9;
+    padding: 0.5pt 2pt;
+    border-radius: 2px;
+  }
+
+  /* Page Break control */
+  .page-break {
+    break-before: page;
+  }
+
+  /* References */
+  .references ol {
+    padding-left: 16pt;
+    font-size: 8pt;
+    line-height: 1.2;
+  }
+  .references li {
+    margin-bottom: 4pt;
+    text-align: justify;
+  }
+</style>
+</head>
+<body>
+
+<!-- Title & Author Block -->
+<div class="title-block">
+  <h1>Design, Implementation, and Verification of a 4&times;4 Systolic Array Matrix Multiplication Accelerator: Phase 1</h1>
+  <div class="authors">Aman Soni, Mayank Sharma, Ankit Pandey, Aditya Verma<sup>*</sup>, and Priyanshu Kumar<sup>*</sup></div>
+  <div class="affiliation">Department of Computer Science and Engineering (AI)<br>Newton School of Technology, Sonipat, India</div>
+  <div class="emails">Email: {amansoni.pali001, sharmamayank01010, ankitgkp}@gmail.com</div>
+  <div style="font-size: 7.5pt; font-style: italic; color: #555; margin-top: 2pt;">*Contributed equally to verification modeling, test vector automation, and benchmark timing analysis.</div>
+</div>
+
+<div class="columns-container">
+
+  <!-- Abstract & Index Terms -->
+  <div class="abstract-container">
+    <p class="no-indent"><span class="abstract-heading">Abstract</span>&mdash;This project implements a hardware-efficient, highly parallel 4&times;4 systolic array matrix multiplication accelerator in Verilog HDL as Phase 1 of an energy-efficient General Matrix Multiply (GEMM) processing engine. The accelerator features signed 8-bit integer operands (INT8) and 32-bit accumulators (INT32) to prevent arithmetic overflow during accumulation. A 2D mesh grid of 16 Processing Elements (PEs) executes pipelined Multiply-Accumulate (MAC) operations with concurrent horizontal and vertical operand forwarding. The core incorporates an internal register skewing pipeline that eliminates external timing alignment buffers, accepting unskewed matrix streams directly. A four-state Mealy/Moore finite state machine (FSM) controller orchestrates an autonomous 14-clock-cycle execution schedule (1 clear cycle, 4 load cycles, 8 drain cycles, and 1 done pulse cycle) with deterministic handshaking. The hardware is verified across four abstraction levels: unit PE tests (10/10 passed), cycle-by-cycle array core tests (105 matrices across 1,533 clock edges verified against a software model), integrated system tests (9/9 passed, including extreme signed values, back-to-back operations, and mid-compute reset recovery), and an algorithmic Python golden model (40 randomized/corner-case vectors passed). Waveform evidence confirms single-cycle pulse outputs, exact 14-cycle latency, and full functional correctness.</p>
+    <div class="index-terms">Index Terms&mdash;Systolic array, Matrix multiplication, GEMM, Processing Element, Hardware Accelerator, Verilog HDL, RTL Verification, Deep Learning.</div>
+  </div>
+
+  <h2>I. Literature Review</h2>
+  <p>Matrix multiplication represents the computational kernel of modern artificial intelligence, deep neural networks (DNNs), computer vision, and scientific computing [1]. Standard matrix-matrix multiplication (<em>C = A &times; B</em>) of two <em>N &times; N</em> matrices requires <em>O(N<sup>3</sup>)</em> multiply-accumulate operations over <em>O(N<sup>2</sup>)</em> data elements. In conventional Von Neumann architectures, fetching operands from off-chip memory for each arithmetic operation introduces the memory bandwidth bottleneck (the &ldquo;memory wall&rdquo;), resulting in substantial energy dissipation and low computational throughput [2].</p>
+
+  <p>To overcome these constraints, H. T. Kung and C. E. Leiserson proposed the systolic array architecture in 1978 [3]. A systolic array is a network of tightly coupled, homogeneous Processing Elements (PEs) that compute and pass data rhythmically through the system. Instead of re-reading operands from memory, data elements broadcast or stream through the array, allowing an operand to be reused multiple times across adjacent PEs before being discarded. Consequently, systolic arrays achieve high operational intensity, performing <em>O(N<sup>3</sup>)</em> arithmetic operations while requiring only <em>O(N)</em> memory bandwidth at the array perimeter [4].</p>
+
+  <p>Modern domain-specific accelerators, such as Google's Tensor Processing Unit (TPU) [1], NVIDIA's Tensor Cores, and various edge-AI neural processing units (NPUs), rely extensively on 2D systolic arrays. Systolic architectures are broadly categorized into three dataflow paradigms: (1) <em>Weight-Stationary (WS)</em>, where weights remain stationary while activations and sums flow; (2) <em>Input-Stationary (IS)</em>, where input activations remain stationary; and (3) <em>Output-Stationary (OS)</em>, where partial sums accumulate locally within each PE's internal register while input matrices <em>A</em> and <em>B</em> stream horizontally and vertically through the array [5].</p>
+
+  <p>Phase 1 of this project implements an Output-Stationary 4&times;4 systolic array architecture. By holding partial sums locally in each PE until the complete dot-product completes, internal register switching activity and external interconnect routing are substantially minimized. Furthermore, by implementing signed 8-bit operands with 32-bit accumulators, our design reflects contemporary low-power edge-AI quantization standards [6].</p>
+
+  <h2>II. Proposed Solution</h2>
+
+  <h3>A. Architectural Overview</h3>
+  <p>The accelerator design is structured hierarchically into four hardware and verification tiers (Fig. 1): (1) <em>Processing Element (PE)</em> containing arithmetic units, accumulator, and forwarding registers; (2) <em>Systolic Array Core</em> providing a 4&times;4 2D mesh of 16 PEs with integrated input skewing pipelines; (3) <em>Matrix Controller</em> coordinating data feeding, state transitions, and memory handshaking; and (4) <em>Top-Level Integration</em> wrapping the controller and array.</p>
+
+</div><!-- End columns container for Page 1 top -->
+
+<!-- Full width Figure 1 -->
+<div class="full-width" style="text-align: center;">
+  <figure>
+    <img src="figures/fig1_accelerator_architecture.png" style="width: 100%; max-height: 380px; object-fit: contain;" alt="Accelerator Architecture">
+    <figcaption><strong>Fig. 1.</strong> Overall Architecture of the 4&times;4 Systolic Array Matrix Multiplication Accelerator. Left: Internal datapath of the Processing Element (PE), featuring 8-bit signed inputs, 16-bit multiplier, 32-bit accumulator, and dual registered forwarding channels. Right: 4&times;4 interconnected 2D mesh array with integrated row/column skewing delay stages and the autonomous FSM Matrix Controller.</figcaption>
+  </figure>
+</div>
+
+<div class="columns-container">
+
+  <h3>B. Processing Element (PE) Design</h3>
+  <p>Each Processing Element (<code>rtl/processing_element.v</code>) computes the scalar accumulation:
+  <div class="equation">C<sub>r,c</sub><sup>(k)</sup> = C<sub>r,c</sub><sup>(k&minus;1)</sup> + (A<sub>r,k</sub> &times; B<sub>k,c</sub>) <span class="eq-num">(1)</span></div>
+  where <em>A<sub>r,k</sub></em> is the signed 8-bit row element and <em>B<sub>k,c</sub></em> is the signed 8-bit column element.</p>
+
+  <p>The PE receives signed 8-bit inputs <code>a_in</code> and <code>b_in</code>, along with active-high valid handshake flags <code>a_valid_in</code> and <code>b_valid_in</code>. The inputs are sign-extended to 16 bits. A 16-bit signed multiplier produces a 16-bit signed product. This product is then sign-extended to 32 bits and summed with the current value of the 32-bit accumulator register <code>acc_out</code>.</p>
+
+  <p>Accumulation occurs strictly on the rising clock edge when both <code>a_valid_in</code> and <code>b_valid_in</code> are asserted. If either valid flag is low, accumulation is inhibited, holding the partial sum constant. When the synchronous clear signal <code>clear_acc</code> is asserted, <code>acc_out</code> resets to <code>32'sd0</code> on the rising clock edge, overriding any incoming operands.</p>
+
+  <p>Concurrently, the PE buffers operands into internal pipeline registers:
+  <div class="equation">a<sub>out</sub> &lArr; a<sub>in</sub>, &nbsp; b<sub>out</sub> &lArr; b<sub>in</sub>, &nbsp; a<sub>v_out</sub> &lArr; a<sub>v_in</sub>, &nbsp; b<sub>v_out</sub> &lArr; b<sub>v_in</sub> <span class="eq-num">(2)</span></div>
+  This forwards operand <em>A</em> horizontally to the east neighbor PE and operand <em>B</em> vertically to the south neighbor PE on the subsequent clock cycle. The active-low asynchronous reset <code>rst_n</code> clears all internal registers, valid signals, and accumulators.</p>
+
+  <h3>C. Systolic Array Core and Internal Skewing</h3>
+  <p>The 4&times;4 systolic array core (<code>rtl/systolic_array.v</code>) instantiates 16 homogeneous PEs in a regular 2D grid using Verilog <code>generate</code> constructs.</p>
+
+  <p>Traditional systolic arrays require external hardware or software to skew input matrices into diagonal wavefronts (i.e., staggering row <em>r</em> by <em>r</em> cycles and column <em>c</em> by <em>c</em> cycles). In our proposed architecture, the skewing circuitry is embedded directly inside the array perimeter: Row 0 / Col 0 have 0 delay stages; Row 1 / Col 1 have 1 synchronous delay flip-flop stage; Row 2 / Col 2 have 2 stages; and Row 3 / Col 3 have 3 stages. Both data bytes and valid bits pass through these skew registers. Consequently, term <em>k</em> of row <em>r</em> and column <em>c</em> reaches PE(<em>r, c</em>) at exact clock cycle:
+  <div class="equation">T<sub>arrival</sub>(r, c, k) = k + r + c <span class="eq-num">(3)</span></div>
+  This internal skewing eliminates external pre-processing buffers and allows unskewed parallel row and column vectors to be streamed directly from memory.</p>
+
+  <h3>D. Matrix Controller and Execution Schedule</h3>
+  <p>The Matrix Controller (<code>rtl/matrix_controller.v</code>) implements a 4-state Mealy/Moore FSM (Fig. 2):</p>
+  <ul>
+    <li><strong>STATE_IDLE (2'b00):</strong> Quiescent state with <code>busy=0</code> and <code>done=0</code>. Upon detecting a single-cycle pulse on <code>start</code>, it asserts <code>busy=1</code>, asserts <code>clear_acc=1</code>, and transitions to <code>STATE_CLEAR</code>.</li>
+    <li><strong>STATE_CLEAR (2'b01):</strong> Deasserts <code>clear_acc</code>, resets load counter <code>k_cnt=0</code>, and transitions to <code>STATE_LOAD</code>.</li>
+    <li><strong>STATE_LOAD (2'b10):</strong> Over four consecutive cycles (<em>k=0, 1, 2, 3</em>), the controller asserts <code>a_valid=4'b1111</code> and <code>b_valid=4'b1111</code>, slicing and driving row lanes <em>A[r][k]</em> and column lanes <em>B[k][c]</em> from the packed 256-bit input buses. When <code>k_cnt==3</code>, it resets <code>d_cnt=0</code> and transitions to <code>STATE_DRAIN</code>.</li>
+    <li><strong>STATE_DRAIN (2'b11):</strong> Input valids are deasserted (<code>4'b0000</code>). Over eight clock cycles (<em>d=0 to 7</em>), operands propagate across the array. When <code>d_cnt==7</code>, PE(3,3) completes its final MAC, all 16 results are valid on <code>acc_in</code>, and the FSM latches <code>result &lt;= acc_in</code>, asserts a single-cycle pulse on <code>done</code>, deasserts <code>busy</code>, and returns to <code>STATE_IDLE</code>.</li>
+  </ul>
+
+  <p>Total latency from <code>start</code> detection to registered <code>result</code> availability is exactly <strong>14 clock cycles</strong>. Table I summarizes the cycle schedule.</p>
+
+  <table>
+    <caption>TABLE I<br>Matrix Controller FSM States and Hardware Schedule</caption>
+    <thead>
+      <tr>
+        <th>Cycle</th>
+        <th>State</th>
+        <th>busy</th>
+        <th>clear_acc</th>
+        <th>valids</th>
+        <th>k/d cnt</th>
+        <th>Hardware Event</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>0</td>
+        <td><strong>CLEAR</strong></td>
+        <td>1</td>
+        <td>1</td>
+        <td>4'b0000</td>
+        <td>-</td>
+        <td>Synchronous clear of all 16 PEs</td>
+      </tr>
+      <tr>
+        <td>1</td>
+        <td><strong>LOAD</strong></td>
+        <td>1</td>
+        <td>0</td>
+        <td>4'b1111</td>
+        <td>k=0</td>
+        <td>Feed k=0; PE(0,0) starts</td>
+      </tr>
+      <tr>
+        <td>2&ndash;4</td>
+        <td><strong>LOAD</strong></td>
+        <td>1</td>
+        <td>0</td>
+        <td>4'b1111</td>
+        <td>k=1..3</td>
+        <td>Feed k=1..3; C[0][0] finishes cyc 4</td>
+      </tr>
+      <tr>
+        <td>5&ndash;11</td>
+        <td><strong>DRAIN</strong></td>
+        <td>1</td>
+        <td>0</td>
+        <td>4'b0000</td>
+        <td>d=0..6</td>
+        <td>Successive diagonals complete</td>
+      </tr>
+      <tr>
+        <td>12</td>
+        <td><strong>DRAIN</strong></td>
+        <td>1</td>
+        <td>0</td>
+        <td>4'b0000</td>
+        <td>d=7</td>
+        <td>PE(3,3) commits; acc_in valid</td>
+      </tr>
+      <tr class="bottom-rule">
+        <td>13</td>
+        <td><strong>IDLE</strong></td>
+        <td>0</td>
+        <td>0</td>
+        <td>4'b0000</td>
+        <td>-</td>
+        <td>Latch result; done=1 (1 pulse)</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <figure>
+    <img src="figures/fig2_fsm_timing.png" style="width: 100%;" alt="FSM and Timing">
+    <figcaption><strong>Fig. 2.</strong> Finite State Machine (FSM) state diagram (top) and hardware execution cycle schedule (bottom) of the Matrix Controller, detailing the 14-cycle autonomous computation sequence from <code>start</code> to <code>done</code>.</figcaption>
+  </figure>
+
+  <h2>III. Verification and Results</h2>
+
+  <h3>A. Verification Methodology</h3>
+  <p>Verification was conducted using Icarus Verilog 13.0 and GTKWave across four tiered simulation suites:</p>
+  <p><strong>1) Unit-Level PE Verification (<code>tb_processing_element.v</code>):</strong> Ten targeted directed tests verify signed positive multiplication (3 &times; 4 = 12), negative multiplication (&minus;3 &times; 5 = &minus;15), double negative arithmetic (&minus;3 &times; &minus;4 = 12), zero multiplication, multi-cycle accumulation (12 &minus; 15 + 32 = 29), operand invalidation suppression, accumulator clearing priority, and registered forwarding. All 10 tests passed (Fig. 4).</p>
+
+  <p><strong>2) Core-Level Cycle-Accurate Verification (<code>tb_systolic_array_core.v</code>):</strong> Evaluates the raw 2D array grid across 105 distinct matrix multiplications (including identity, zero, signed extremes, and 100 pseudo-random matrices). An internal cycle-by-cycle scoreboard model checks all 16 accumulator outputs on every clock edge (1,533 edges verified with zero errors). It also verifies bubbles, independent valid masks, and asynchronous reset recovery.</p>
+
+  <p><strong>3) Integrated System-Level Verification (<code>tb_systolic_array.v</code>):</strong> Exercises the full <code>systolic_array_top</code> module across 9 complex operational scenarios: Identity &times; M (I &times; M = M), Zero &times; Zero, known positive 4&times;4 matrix multiply, extreme signed values (&minus;128 / +127), mixed signs, back-to-back operations without idle delay, reset during active computation, and result hold stability. All 9 test suites passed with 0 mismatches (Table II). Waveform capture of Test 2 is presented in Fig. 3.</p>
+
+  <p><strong>4) Algorithmic Python Golden Model (<code>golden_model.py</code>):</strong> An independent Python reference model generates 40 test vectors (20 corner cases + 20 randomized), exports <code>$readmemh</code>-compatible hex test files, and provides automated hex unpacking and verification of the 512-bit output bus. All 40 vectors passed with zero errors.</p>
+
+  <table>
+    <caption>TABLE II<br>Verified Matrix Multiplication Test Scenarios</caption>
+    <thead>
+      <tr>
+        <th>Test Scenario</th>
+        <th>Matrix Properties</th>
+        <th>Latency</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Identity &times; M</td>
+        <td>A = I<sub>4</sub>, B<sub>r,c</sub> = 4r+c+1</td>
+        <td>14 cycles</td>
+        <td><strong>PASS</strong></td>
+      </tr>
+      <tr>
+        <td>Zero &times; Zero</td>
+        <td>A = 0<sub>4&times;4</sub>, B = 0<sub>4&times;4</sub></td>
+        <td>14 cycles</td>
+        <td><strong>PASS</strong></td>
+      </tr>
+      <tr>
+        <td>Known Positive</td>
+        <td>A: 1..16, B: 16..1</td>
+        <td>14 cycles</td>
+        <td><strong>PASS</strong></td>
+      </tr>
+      <tr>
+        <td>Signed Extremes</td>
+        <td>Checkerboard &minus;128 / +127</td>
+        <td>14 cycles</td>
+        <td><strong>PASS</strong></td>
+      </tr>
+      <tr>
+        <td>Mixed Signs</td>
+        <td>Alternate positive / negative</td>
+        <td>14 cycles</td>
+        <td><strong>PASS</strong></td>
+      </tr>
+      <tr>
+        <td>Back-to-Back</td>
+        <td>Continuous chained GEMM</td>
+        <td>28 cycles</td>
+        <td><strong>PASS</strong></td>
+      </tr>
+      <tr>
+        <td>Reset Mid-Run</td>
+        <td>Assert reset during LOAD</td>
+        <td>Recovered</td>
+        <td><strong>PASS</strong></td>
+      </tr>
+      <tr class="bottom-rule">
+        <td>Result Stability</td>
+        <td>Hold across 50 idle cycles</td>
+        <td>Stable</td>
+        <td><strong>PASS</strong></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <figure>
+    <img src="figures/fig3_top_waveform.png" style="width: 100%;" alt="Top Waveform">
+    <figcaption><strong>Fig. 3.</strong> Integrated top-level simulation waveform from <code>tb_systolic_array.vcd</code> (Test 2: Known 4&times;4 Multiplication). Markers show <code>start</code> assertion at T<sub>1</sub> = 380 ns, deterministic progression through CLEAR, LOAD (k=0..3), and DRAIN (d=0..7), and single-cycle <code>done</code> pulse asserting at T<sub>2</sub> = 515 ns with verified output latching.</figcaption>
+  </figure>
+
+  <figure>
+    <img src="figures/fig4_pe_waveform.png" style="width: 100%;" alt="PE Waveform">
+    <figcaption><strong>Fig. 4.</strong> Processing Element (PE) unit simulation waveform from <code>pe.vcd</code>, demonstrating positive multiplication (3 &times; 4 = 12 at 45 ns), accumulator clearing to zero at 55 ns, and negative multiplication (&minus;3 &times; 5 = &minus;15 at 65 ns).</figcaption>
+  </figure>
+
+  <h2>IV. Individual Contributions</h2>
+  <p class="no-indent">The development, verification, and documentation tasks were partitioned among the five team members as follows:</p>
+  <ul>
+    <li><strong>Aman Soni:</strong> Architectural specification and RTL design of the Multiply-Accumulate Processing Element (<code>rtl/processing_element.v</code>). Implemented signed sign-extension logic, 16-bit signed multiplier, 32-bit accumulator, and dual registered forwarding channels. Authored the unit-level PE testbench (<code>testbench/tb_processing_element.v</code>) and verified all 10 unit test cases.</li>
+    <li><strong>Mayank Sharma:</strong> RTL implementation of the 4&times;4 2D systolic array mesh grid (<code>rtl/systolic_array.v</code>). Designed the integrated row and column skewing delay register pipelines. Authored the cycle-accurate array core testbench (<code>testbench/tb_systolic_array_core.v</code>) and verified 105 matrix multiplications across 1,533 clock edges.</li>
+    <li><strong>Ankit Pandey:</strong> RTL implementation of the finite state machine Matrix Controller (<code>rtl/matrix_controller.v</code>) and top-level accelerator integration (<code>rtl/systolic_array_top.v</code>). Formulated the 14-cycle execution schedule. Authored the system-level integration testbench (<code>testbench/tb_systolic_array.v</code>) verifying all 9 system test cases.</li>
+    <li><strong>Aditya Verma:</strong> Developed the algorithmic Python golden reference model (<code>verification/golden_model.py</code>). Implemented the automated 40-vector randomized test suite, <code>$readmemh</code> hex file export, and 512-bit hex bus output unpacking and automated comparison routines.</li>
+    <li><strong>Priyanshu Kumar:</strong> Conducted simulation timing analysis, waveform extraction, and corner-case verification (mid-compute reset recovery, back-to-back operation pipelining, and output stability). Co-authored the project documentation, IEEE report, and prototype demonstration script.</li>
+  </ul>
+
+  <h2>V. Conclusion and Phase 2 Roadmap</h2>
+  <p>Phase 1 successfully implemented, simulated, and verified a 4&times;4 systolic array matrix multiplication accelerator in Verilog HDL. The design features INT8 operands, INT32 accumulators, embedded input skewing, and an autonomous 14-cycle FSM controller. The implementation achieves 100% pass rates across unit, core, system, and algorithmic verification suites.</p>
+
+  <p>Phase 2 will extend this architecture by: (1) integrating dual-port Block RAMs (BRAMs) for local activation and weight storage; (2) implementing an industry-standard AXI4-Stream memory interface with burst transfers; (3) adding a matrix tiling engine to partition arbitrary <em>M &times; K &times; N</em> matrices into 4&times;4 hardware blocks; and (4) deploying and synthesizing the complete accelerator on an AMD Xilinx Artix-7/Zynq FPGA board to evaluate maximum operating frequency, resource utilization, and power dissipation.</p>
+
+  <h2>References</h2>
+  <div class="references">
+    <ol>
+      <li>N. P. Jouppi et al., &ldquo;In-datacenter performance analysis of a tensor processing unit,&rdquo; in <em>Proc. 44th Annu. Int. Symp. Comput. Archit. (ISCA)</em>, Toronto, ON, Canada, Jun. 2017, pp. 1&ndash;12.</li>
+      <li>D. A. Patterson and J. L. Hennessy, <em>Computer Organization and Design RISC-V Edition: The Hardware/Software Interface</em>, 2nd ed. San Francisco, CA, USA: Morgan Kaufmann, 2020, ch. 4&ndash;6.</li>
+      <li>H. T. Kung and C. E. Leiserson, &ldquo;Systolic arrays (for VLSI),&rdquo; in <em>Sparse Matrix Proc. 1978</em>, I. S. Duff and G. W. Stewart, Eds. Philadelphia, PA: SIAM, 1979, pp. 256&ndash;282.</li>
+      <li>H. T. Kung, &ldquo;Why systolic architectures?&rdquo; <em>IEEE Computer</em>, vol. 15, no. 1, pp. 37&ndash;46, Jan. 1982.</li>
+      <li>Y.-H. Chen, T. Krishna, J. S. Emer, and V. Sze, &ldquo;Eyeriss: An energy-efficient accelerator for deep convolutional neural networks,&rdquo; <em>IEEE J. Solid-State Circuits</em>, vol. 52, no. 1, pp. 127&ndash;138, Jan. 2017.</li>
+      <li>B. Jacob et al., &ldquo;Quantization and training of neural networks for efficient integer-arithmetic-only inference,&rdquo; in <em>Proc. IEEE Conf. Comput. Vis. Pattern Recognit. (CVPR)</em>, Salt Lake City, UT, USA, Jun. 2018, pp. 2704&ndash;2713.</li>
+      <li>S. Williams, <em>Icarus Verilog</em>, ver. 13.0. [Online]. Available: https://github.com/steveicarus/iverilog</li>
+      <li>A. Bybell, <em>GTKWave Waveform Viewer</em>, ver. 3.3. [Online]. Available: https://gtkwave.sourceforge.net/</li>
+    </ol>
+  </div>
+
+</div><!-- End columns container -->
+
+</body>
+</html>

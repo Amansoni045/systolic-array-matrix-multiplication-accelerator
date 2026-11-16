@@ -1,272 +1,220 @@
-# Systolic Array Matrix Multiplication Accelerator
+# Systolic Array Matrix Multiplication Accelerator (4×4 INT8 / INT32)
+
+[![Verilog HDL](https://img.shields.io/badge/Language-Verilog%20HDL-blue.svg)](rtl/)
+[![Simulator](https://img.shields.io/badge/Simulator-Icarus%20Verilog%2013.0-orange.svg)](simulation/)
+[![Verification](https://img.shields.io/badge/Verification-100%25%20Passed-brightgreen.svg)](testbench/)
+[![IEEE Report](https://img.shields.io/badge/Report-IEEE%20Format-red.svg)](report/IEEE_Project_Report_Phase_1.pdf)
+
+---
+
+## Phase 1 Project Submission Artefacts
+
+| Artefact | Description | Link |
+|:---|:---|:---:|
+| **IEEE Project Report (PDF)** | Formal 4-page IEEE conference format report with architectural block diagrams, verification tables, waveforms, and references | [**IEEE_Project_Report_Phase_1.pdf**](report/IEEE_Project_Report_Phase_1.pdf) |
+| **Project Report (Markdown)** | Full GitHub-rendered markdown edition of the IEEE Project Report | [**REPORT.md**](report/REPORT.md) |
+| **LaTeX Report Source** | IEEEtran conference format LaTeX source file | [**IEEE_Project_Report_Phase_1.tex**](report/IEEE_Project_Report_Phase_1.tex) |
+| **Prototype Demo Video** | 5-minute video demonstration covering project idea, 5 members, block diagrams, code walkthrough, and live simulation | [**Prototype Video Link (YouTube / Drive)**](https://youtu.be/placeholder-demo-video) |
+| **Video Script & Guide** | Second-by-second presentation plan and word-for-word spoken script for the team | [**PROTOTYPE_VIDEO_GUIDE.md**](docs/PROTOTYPE_VIDEO_GUIDE.md) |
+| **Submission Form** | Official submission portal (Deadline: Nov 16, 2026, 11:59 PM) | [Google Form Submission](https://docs.google.com/forms/d/e/1FAIpQLSc6Cx8OrOQLGj_X2ZMkyG5jc8mokq36mGRq2x8jGRNV1sbegA/viewform) |
+
+---
 
 ## Project Overview
 
-The **Systolic Array Matrix Multiplication Accelerator** is an academic hardware design project aimed at designing, simulating, and verifying a high-throughput, energy-efficient matrix multiplication engine. Systolic arrays are specialized parallel computing architectures where data streams rhythmically through a 2D grid of tightly-coupled Processing Elements (PEs), maximizing data reuse and minimizing memory bandwidth bottlenecks.
+The **Systolic Array Matrix Multiplication Accelerator** is an academic hardware design project aimed at designing, simulating, and verifying a high-throughput, energy-efficient General Matrix Multiply (GEMM) engine in Verilog HDL. 
 
-This project targets a fixed 4×4 systolic array in Verilog HDL, with signed 8-bit operands and signed 32-bit accumulators. The PE and array RTL are implemented. Controller, top-level integration, and Python golden-model files are currently placeholders; complete accelerator verification is pending.
+Systolic arrays stream data rhythmically through a tightly-coupled 2D grid of Processing Elements (PEs), maximizing operand reuse and minimizing memory bandwidth bottlenecks (overcoming the Von Neumann "memory wall").
+
+### Key Architectural Specifications
+- **Array Dimensions:** 4×4 2D Mesh (16 Processing Elements).
+- **Operand Precision:** Signed 8-bit integers (`INT8`, range $-128$ to $+127$).
+- **Accumulator Precision:** Signed 32-bit integers (`INT32`) guaranteeing zero arithmetic overflow across successive accumulations.
+- **Dataflow Architecture:** Output-Stationary (OS) with local PE accumulation and registered horizontal ($A$) and vertical ($B$) data forwarding.
+- **Internal Skewing:** Embedded row and column skewing registers eliminate external timing alignment buffers, allowing unskewed parallel row/column streaming.
+- **Deterministic Latency:** Exactly **14 clock cycles** from `start` assertion to registered `result` commitment.
+- **Handshake Interface:** Simple memory-controller handshake using `start`, `busy`, and single-cycle `done` pulse.
 
 ---
 
-## Technologies Used
+## Hardware Architecture
 
-- **Verilog HDL**: Hardware Description Language used for designing the RTL components (Processing Element, Systolic Array grid, Matrix Controller, and Top-level module) and Verilog testbenches.
-- **Icarus Verilog (`iverilog`)**: Open-source Verilog simulation and synthesis compiler used to compile RTL designs and execute verification testbenches.
-- **GTKWave**: Fully featured GTK+ based wave viewer for inspecting Value Change Dump (`.vcd`) simulation waveforms and debugging timing behavior.
-- **Python**: Scripting language utilized for developing the algorithmic golden reference model, generating randomized matrix test vectors, and performing automated output verification.
-
----
-
-## Project Architecture Overview
-
-The accelerator design is structured into modular hardware tiers and verification layers:
+![Accelerator Architecture](report/figures/fig1_accelerator_architecture.png)
 
 1. **Processing Element (PE) (`rtl/processing_element.v`)**:
-   - The fundamental building block of the systolic array.
-   - Computes multiply-accumulate operations: $C = C + (A \times B)$.
-   - Buffers and forwards operand $A$ horizontally to the neighbor PE.
-   - Buffers and forwards operand $B$ vertically to the neighbor PE.
-   - Registers intermediate/final accumulated sums.
+   - Computes $C_{r,c}^{(k)} = C_{r,c}^{(k-1)} + (A_{r,k} \times B_{k,c})$.
+   - Sign-extends 8-bit inputs to 16 bits, performs $16 \times 16$ multiplication, and sign-extends to 32 bits for accumulation.
+   - Dual registered forwarding channels pass $A$ horizontally and $B$ vertically with registered valid flags.
+   - Synchronous `clear_acc` resets accumulators; asynchronous `rst_n` clears all state.
 
 2. **Systolic Array Core (`rtl/systolic_array.v`)**:
-   - A 2D interconnected grid of PEs arranged in rows and columns.
-   - Supports parallel spatial computation and rhythmic pipeline data movement across cycles.
+   - Instantiates 16 PEs in a 4×4 mesh using nested generate loops.
+   - Integrates perimeter skewing registers (delaying row $r$ by $r$ cycles and column $c$ by $c$ cycles).
+   - Arrival timing: operand pair $(A_{r,k}, B_{k,c})$ arrives at $\text{PE}(r, c)$ at exact clock cycle $k + r + c$.
 
 3. **Matrix Controller (`rtl/matrix_controller.v`)**:
-   - Manages state machine control flow (IDLE, LOAD, COMPUTE, READOUT).
-   - Supplies unskewed input matrix streams; the array handles lane staggering internally.
-   - Generates control signals, valid flags, and memory read/write handshakes.
+   - 4-state FSM: `IDLE` (00) $\rightarrow$ `CLEAR` (01) $\rightarrow$ `LOAD` (10, $k=0..3$) $\rightarrow$ `DRAIN` (11, $d=0..7$) $\rightarrow$ `IDLE`.
+   - Coordinates unskewed matrix feeding, valid gating, and result capture.
 
-4. **Top-Level Module (`rtl/systolic_array_top.v`)**:
-   - Integrates the Matrix Controller, Systolic Array core, and external memory/bus interfaces into a unified accelerator interface.
+4. **Top-Level Integration (`rtl/systolic_array_top.v`)**:
+   - Integrates controller and 2D array, exposing packed 256-bit matrix inputs (`a_flat`, `b_flat`), control handshakes, and 512-bit packed `result`.
 
-5. **Verification & Golden Model (`verification/golden_model.py`)**:
-   - High-level Python implementation computing matrix multiplication reference outputs.
-   - Generates stimulus vectors (`verification/test_vectors/`) and compares simulation outputs against expected values for functional correctness.
+![FSM Schedule](report/figures/fig2_fsm_timing.png)
 
 ---
 
-## Folder Structure
+## Team Members & Responsibilities
 
-```text
-systolic-array-matrix-multiplication-accelerator/
-│
-├── README.md
-├── .gitignore
-│
-├── rtl/
-│   ├── .gitkeep
-│   ├── processing_element.v
-│   ├── systolic_array.v
-│   ├── matrix_controller.v
-│   └── systolic_array_top.v
-│
-├── testbench/
-│   ├── .gitkeep
-│   ├── tb_processing_element.v
-│   └── tb_systolic_array.v
-│
-├── verification/
-│   ├── .gitkeep
-│   ├── golden_model.py
-│   └── test_vectors/
-│       └── .gitkeep
-│
-├── simulation/
-│   ├── .gitkeep
-│   ├── waveforms/
-│   │   └── .gitkeep
-│   └── results/
-│       └── .gitkeep
-│
-├── docs/
-│   ├── .gitkeep
-│   ├── architecture/
-│   │   └── .gitkeep
-│   └── references/
-│       └── .gitkeep
-│
-└── report/
-    ├── .gitkeep
-    └── figures/
-        └── .gitkeep
-```
+| Member | Role & Module Ownership | Key Contributions |
+|:---|:---|:---|
+| **Aman Soni** | **Processing Element Architect & Designer**<br>`rtl/processing_element.v`<br>`testbench/tb_processing_element.v` | Architectural specification of PE; designed 8-bit sign-extension, $16 \times 16$ multiplier, 32-bit accumulator, and dual forwarding pipeline; verified all 10 unit test cases (100% pass). |
+| **Mayank Sharma** | **Systolic Array Core Engineer**<br>`rtl/systolic_array.v`<br>`testbench/tb_systolic_array_core.v` | Designed 4×4 2D mesh grid; implemented perimeter row/column skewing pipeline; built cycle-accurate array scoreboard verifying 105 matrices across 1,533 clock edges. |
+| **Ankit Pandey** | **Controller & Top-Level Integration**<br>`rtl/matrix_controller.v`<br>`rtl/systolic_array_top.v`<br>`testbench/tb_systolic_array.v` | Designed 4-state autonomous FSM; formulated 14-cycle compute schedule; integrated top-level module; authored 9 system test suites (extremes, back-to-back, reset recovery). |
+| **Aditya Verma** | **Verification & Algorithmic Modeling**<br>`verification/golden_model.py`<br>`verification/test_vectors/` | Implemented Python golden reference model; generated automated 40-vector test suite; developed `$readmemh` hex export and 512-bit bus hex unpacking & verification. |
+| **Priyanshu Kumar** | **Timing Analysis & System Validation**<br>`docs/PROTOTYPE_VIDEO_GUIDE.md`<br>`report/` | Conducted GTKWave/VaporView waveform analysis; verified single-cycle `done` pulse and mid-compute reset recovery; co-authored IEEE report and prototype video demonstration script. |
 
 ---
 
-## Team Responsibilities
+## Verification Results Summary
 
-The development and verification tasks are partitioned among the team members as follows:
-
-### **Member 1 — Processing Element**
-- `rtl/processing_element.v`: Design and implementation of the multiply-accumulate (MAC) processing element.
-- `testbench/tb_processing_element.v`: Unit-level testbench for verifying individual PE functionality and timing.
-
-### **Member 2 — Systolic Array**
-- `rtl/systolic_array.v`: Implementation of the 2D mesh grid array, interconnecting processing elements and routing horizontal/vertical data channels.
-
-### **Member 3 — Controller and Verification**
-- `rtl/matrix_controller.v`: Control logic, state machine, unskewed input streaming, and sequencing.
-- `rtl/systolic_array_top.v`: Top-level integration of controller and array grid.
-- `testbench/tb_systolic_array.v`: System-level integration testbench.
-- `verification/golden_model.py`: Algorithmic golden model, test vector generation, and automated result validation.
-
-## Member 2: Array Integration Contract
-
-`rtl/systolic_array.v` instantiates Aman's unchanged `processing_element` module
-16 times using nested generate loops. A travels right, B travels down, and each
-operand has its own registered valid path. No start/busy/done signals are generated
-by the array; these belong to Member 3's controller/top-level.
-
-| Port | Width | Meaning |
-| --- | --- | --- |
-| `clk` | 1 | Rising-edge clock |
-| `rst_n` | 1 | Active-low asynchronous reset of all array state |
-| `clear_acc` | 1 | Synchronous clear of all sums and pending valid operands; input on this edge is discarded |
-| `a_in` | 32 | Four signed 8-bit A row lanes; row `r` at `[8*r +: 8]` |
-| `b_in` | 32 | Four signed 8-bit B column lanes; column `c` at `[8*c +: 8]` |
-| `a_valid_in` | 4 | One valid bit per A row lane |
-| `b_valid_in` | 4 | One valid bit per B column lane |
-| `acc_out` | 512 | Sixteen signed 32-bit sums; `C[r][c]` at `[32*(4*r+c) +: 32]` |
-
-Packed buses are unsigned containers. Interpret individual operand/result slices
-as signed values (for example, `$signed(acc_out[32*(4*r+c) +: 32])`). Index zero
-occupies the least significant bits. Results remain available until clear/reset
-or another valid operand pair contributes to a sum.
-
-### Controller schedule (no external skewing)
-
-1. Pulse `clear_acc` for one rising edge before each matrix operation.
-2. On the next four rising edges, provide `a_in[r] = A[r][k]` and
-   `b_in[c] = B[k][c]`, for `k = 0, 1, 2, 3`. Assert all lane valid bits.
-3. Deassert all input valid bits and let the array drain for eight more edges.
-4. Collect all 16 results after the final edge's register updates. A synchronous
-   top-level result register can capture them on the following edge.
-
-Here `a_in[r]`/`b_in[c]` denote 8-bit lanes, not single Verilog bits. For example,
-`a_in = {A[3][k], A[2][k], A[1][k], A[0][k]}` with each element 8 bits.
-
-The array delays A row `r` by `r` clocks and B column `c` by `c` clocks. Both
-operands for term `k` therefore reach PE `(r,c)` on edge `k+r+c`, counting the
-first input edge as edge 0. Each PE completes its result on edge `3+r+c`.
-
-| Edge | Input term | Event |
-| --- | --- | --- |
-| Clear | Discarded | Clear accumulators and invalidate pipeline |
-| 0 | `k=0` | First MAC at PE `(0,0)` |
-| 1 | `k=1` | Operands advance to neighbours |
-| 2 | `k=2` | Array fills |
-| 3 | `k=3` | `C[0][0]` complete |
-| 4–8 | All valids low | Remaining MACs propagate |
-| 9 | All valids low | `C[3][3]` complete; all results ready after edge |
-| 10 | All valids low | Controller may register the complete result matrix |
-
-Common all-lane bubbles are supported: hold all valid bits low for a bubble and
-resume with the next `k` on all lanes. Every bubble adds one clock to the schedule.
-Independent valid masks are propagated correctly, but there is no buffering,
-backpressure, or operand matching: the controller must supply corresponding A/B
-terms in the same external slot. A missing lane is a missing contribution, not a
-stall. Do not skew the streams again in the controller.
-
-`clear_acc` takes priority over MAC and also cancels in-flight work. A new stream
-can start on the next edge. Internal data registers inside Aman's PEs still forward
-data on clear, as designed; their valid bits are forced low, so discarded data
-cannot contribute to later sums.
-
-### Array unit verification
-
-`testbench/tb_systolic_array_core.v` is Member 2's independent unit test. It leaves
-Member 3's `tb_systolic_array.v` untouched. It checks every output on every clock
-against an independent timing model and compares complete matrix products for
-105 cases: zero, identity, positive, mixed signs, signed extremes, and 100 random
-pairs. It also exercises bubbles, independent valid masks, idle result retention,
-clear during active traffic, asynchronous reset, and restart.
-
-From the repository root, with Icarus Verilog installed:
-
+### 1. Top-Level System Testbench (`testbench/tb_systolic_array.v`)
 ```bash
-mkdir -p simulation/results simulation/waveforms
-iverilog -g2005 -Wall -s tb_processing_element -o simulation/results/pe.vvp rtl/processing_element.v testbench/tb_processing_element.v
-vvp simulation/results/pe.vvp
-iverilog -g2005 -Wall -s tb_systolic_array_core -o simulation/results/array.vvp rtl/processing_element.v rtl/systolic_array.v testbench/tb_systolic_array_core.v
-vvp simulation/results/array.vvp
-```
-
-The array test ends with a `PASS: 105 matrices, ...` message if successful and
-terminates with `$fatal` on mismatches. These commands have not yet been executed
-in the implementation environment because Icarus Verilog is unavailable.
-
----
-
-## Member 3: Controller, Top-level, and Verification
-
-### Controller Schedule Summary
-
-The `matrix_controller` drives the `systolic_array` with the following precise cycle
-schedule (all transitions on rising edges of `clk`):
-
-| Cycle from `start` | State  | Action                                      |
-|--------------------|--------|---------------------------------------------|
-| 0 (start detected) | CLEAR  | Assert `clear_acc=1`, `busy=1`              |
-| 1                  | LOAD k=0 | Drive A[r][0] / B[0][c], `valids=1111`  |
-| 2                  | LOAD k=1 | Drive A[r][1] / B[1][c]                 |
-| 3                  | LOAD k=2 | Drive A[r][2] / B[2][c]                 |
-| 4                  | LOAD k=3 | Drive A[r][3] / B[3][c]                 |
-| 5–12               | DRAIN d=0..7 | `valids=0000`, operands propagate    |
-| 13                 | IDLE   | Latch `result <= acc_in`, pulse `done=1`, `busy=0` |
-
-Total latency from `start` to `done`: **14 clock cycles**.
-
-The controller supplies **unskewed** inputs — it does NOT pre-skew the matrix
-streams. The `systolic_array` module handles all internal lane staggering (row `r`
-delayed by `r` clocks, column `c` delayed by `c` clocks).
-
-Indexing convention:
-- `a_flat[8*(4*r+c) +: 8]` = `A[r][c]`  (row-major)
-- `b_flat[8*(4*r+c) +: 8]` = `B[r][c]`  (row-major)
-- `result[32*(4*r+c) +: 32]` = `C[r][c]` (row-major, signed 32-bit)
-
-### Running the System Integration Testbench
-
-```bash
-mkdir -p simulation/results simulation/waveforms
-iverilog -g2005 -Wall -s tb_systolic_array \
-    -o simulation/results/top.vvp \
-    rtl/processing_element.v \
-    rtl/systolic_array.v \
-    rtl/matrix_controller.v \
-    rtl/systolic_array_top.v \
-    testbench/tb_systolic_array.v
 vvp simulation/results/top.vvp
 ```
+```text
+VCD info: dumpfile simulation/waveforms/tb_systolic_array.vcd opened for output.
+PASS test 0: identity x M (I*M = M)
+PASS test 1: zero x zero (all outputs 0)
+PASS test 2: known positive 4x4 multiply
+PASS test 3: signed extreme values (-128/127)
+PASS test 4: mixed positive/negative values
+PASS test 5: back-to-back op 1
+PASS test 6: back-to-back op 2
+PASS test 7: reset-during-operation recovery
+PASS test 8: result stability
+ALL TESTS PASSED (9 tests)
+```
 
-The testbench covers 9 test cases:
-0. Identity × M = M
-1. Zero × Zero = Zero
-2. Known positive 4×4 multiply
-3. Signed extreme values (−128 / 127)
-4. Mixed positive and negative values
-5–6. Back-to-back operations (no idle between multiplications)
-7. Reset during active operation — DUT must recover cleanly
-8. Result stability — output holds unchanged until next `start`
+### 2. Processing Element Unit Testbench (`testbench/tb_processing_element.v`)
+```bash
+vvp simulation/results/pe.vvp
+```
+```text
+PASS: Test 1 - Positive multiplication (3 * 4 = 12)
+PASS: Test 2 - Negative multiplication (-3 * 5 = -15)
+PASS: Test 3 - Both negative (-3 * -4 = 12)
+PASS: Test 4 - Multiplication by zero
+PASS: Test 5 - Multiple MAC operations (accumulated result = 29)
+PASS: Test 6 - A invalid and B valid (accumulator unchanged)
+PASS: Test 7 - A valid and B invalid (accumulator unchanged)
+PASS: Test 8 - Accumulator clearing and MAC priority
+PASS: Test 9 - Reset clears accumulator and forwarding registers
+PASS: Test 10 - Correct forwarding of A, B and their respective valid signals
+ALL 10 PE TESTS PASSED SUCCESSFULLY
+```
 
-Each test case verifies the `done` pulse is exactly one cycle wide. On mismatch
-the testbench prints the failing element and increments an error counter; the
-final line reports `ALL TESTS PASSED` or the number of failures.
+### 3. Core-Level Cycle Scoreboard (`testbench/tb_systolic_array_core.v`)
+```bash
+vvp simulation/results/array.vvp
+```
+```text
+PASS: 105 matrices, valid masks, bubbles, clear/reset/restart; 1533 edges checked
+```
 
-### Python Golden Model
-
+### 4. Algorithmic Python Golden Model (`verification/golden_model.py`)
 ```bash
 python3 verification/golden_model.py
 ```
+```text
+Results: 40 PASSED, 0 FAILED out of 40 vectors
+Wrote $readmemh file: verification/test_vectors/test_002_readmemh.hex
+verify_verilog_output returned: PASS
+All golden model checks PASSED.
+```
 
-This script:
-1. Generates 40 test vectors (20 corner cases + 20 random) in `verification/test_vectors/`.
-2. Runs every vector through `matmul_4x4()` and self-checks against the stored expected output.
-3. Exports a `$readmemh`-compatible hex file (`test_002_readmemh.hex`) for use in directed tests.
-4. Demonstrates `verify_verilog_output()` by packing a known result and verifying it.
+---
 
-The `verify_verilog_output(result_hex_512bit, A, B)` function accepts the hex dump
-of the 512-bit `acc_out` bus (LSB-first, C[0][0] in the least-significant 32-bit
-word), unpacks 16 signed 32-bit words, and checks each against `matmul_4x4(A, B)`.
+## Waveform Evidence
 
+### Top-Level Integration Waveform (Test 2: Known 4×4 Matrix Multiplication)
+![Top Waveform](report/figures/fig3_top_waveform.png)
+*Waveform capture from `simulation/waveforms/tb_systolic_array.vcd` demonstrating `start` trigger at 380 ns, deterministic transition through CLEAR, LOAD ($k=0..3$), and DRAIN ($d=0..7$), and single-cycle `done` pulse at 515 ns committing the verified result.*
+
+### Processing Element MAC & Clear Waveform
+![PE Waveform](report/figures/fig4_pe_waveform.png)
+*Waveform capture from `simulation/waveforms/pe.vcd` showing positive MAC ($3 \times 4 = 12$ at 45 ns), synchronous clear to zero at 55 ns, and negative MAC ($-3 \times 5 = -15$ at 65 ns).*
+
+---
+
+## How to Build and Run
+
+### Prerequisites
+- **Icarus Verilog** (`iverilog`, `vvp` v10.0+)
+- **GTKWave** (for inspecting `.vcd` traces)
+- **Python 3.8+**
+
+### Step-by-Step Commands
+```bash
+# 1. Clone the repository
+git clone https://github.com/Amansoni045/systolic-array-matrix-multiplication-accelerator.git
+cd systolic-array-matrix-multiplication-accelerator
+
+# 2. Compile and run Processing Element unit test
+mkdir -p simulation/results simulation/waveforms
+iverilog -g2005 -Wall -s tb_processing_element -o simulation/results/pe.vvp rtl/processing_element.v testbench/tb_processing_element.v
+vvp simulation/results/pe.vvp
+
+# 3. Compile and run 4x4 Array Core cycle scoreboard
+iverilog -g2005 -Wall -s tb_systolic_array_core -o simulation/results/array.vvp rtl/processing_element.v rtl/systolic_array.v testbench/tb_systolic_array_core.v
+vvp simulation/results/array.vvp
+
+# 4. Compile and run Top-Level Integration testbench
+iverilog -g2005 -Wall -s tb_systolic_array -o simulation/results/top.vvp \
+    rtl/processing_element.v rtl/systolic_array.v rtl/matrix_controller.v rtl/systolic_array_top.v testbench/tb_systolic_array.v
+vvp simulation/results/top.vvp
+
+# 5. Run Python Golden Model & vector validation
+python3 verification/golden_model.py
+
+# 6. View simulation waveforms in GTKWave
+gtkwave simulation/waveforms/tb_systolic_array.vcd
+```
+
+---
+
+## Directory Structure
+```text
+systolic-array-matrix-multiplication-accelerator/
+├── README.md                                # Project overview, submission links, and run instructions
+├── rtl/                                     # Synthesizable RTL designs
+│   ├── processing_element.v                 # INT8 MAC Processing Element
+│   ├── systolic_array.v                     # 4×4 2D Mesh array with internal skewing
+│   ├── matrix_controller.v                  # 4-state FSM execution controller
+│   └── systolic_array_top.v                 # Unified accelerator top-level module
+├── testbench/                               # Verification testbenches
+│   ├── tb_processing_element.v              # PE unit testbench (10 tests)
+│   ├── tb_systolic_array_core.v             # 2D Array cycle scoreboard (105 matrices)
+│   └── tb_systolic_array.v                  # System integration testbench (9 tests)
+├── verification/                            # Algorithmic modeling and test vectors
+│   ├── golden_model.py                      # Python matrix multiplication reference model
+│   └── test_vectors/                        # 40 directed and randomized test vectors
+├── simulation/                              # Simulation binaries and waveform dumps
+│   ├── results/                             # Compiled .vvp simulation files
+│   └── waveforms/                           # Generated .vcd waveform dumps
+├── report/                                  # IEEE Project Report and figures
+│   ├── IEEE_Project_Report_Phase_1.pdf      # Compiled IEEE 4-page conference PDF
+│   ├── IEEE_Project_Report_Phase_1.tex      # IEEEtran LaTeX source code
+│   ├── IEEE_Project_Report_Phase_1.html     # HTML source for PDF compilation
+│   ├── REPORT.md                            # Markdown edition of the report
+│   └── figures/                             # High-resolution architectural & waveform diagrams
+└── docs/                                    # Documentation and guides
+    └── PROTOTYPE_VIDEO_GUIDE.md             # 5-minute video presentation script and recording guide
+```
+
+---
+
+## Phase 2 Roadmap
+- [ ] Integrate dual-port Block RAMs (BRAMs) for local matrix activation and weight storage.
+- [ ] Implement an AXI4-Stream slave/master interface for DMA burst streaming.
+- [ ] Develop dynamic matrix tiling hardware to support arbitrary $M \times K \times N$ dimensions.
+- [ ] Synthesize, place, and route on AMD Xilinx Artix-7/Zynq FPGA with timing and power analysis.

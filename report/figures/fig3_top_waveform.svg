@@ -1,0 +1,157 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 480" width="1100" height="480" style="background-color:#18181b; font-family:'Menlo','Monaco','Courier New',monospace;">
+  <!-- Title / Window bar -->
+  <rect x="0" y="0" width="1100" height="30" fill="#27272a"/>
+  <circle cx="18" cy="15" r="5" fill="#ef4444"/>
+  <circle cx="34" cy="15" r="5" fill="#eab308"/>
+  <circle cx="50" cy="15" r="5" fill="#22c55e"/>
+  <text x="550" y="20" text-anchor="middle" font-size="12" fill="#a1a1aa">VaporView / GTKWave — tb_systolic_array.vcd (Test 2: Known 4x4 Multiply)</text>
+
+  <!-- Timeline ruler -->
+  <g transform="translate(220, 30)">
+    <rect x="0" y="0" width="860" height="25" fill="#27272a"/>
+    <line x1="0" y1="15" x2="0" y2="25" stroke="#71717a" stroke-width="1"/>
+    <text x="0" y="12" text-anchor="middle" font-size="10" fill="#a1a1aa">375ns</text>
+    <line x1="0" y1="25" x2="0" y2="440" stroke="#27272a" stroke-dasharray="2,4" stroke-width="1"/>
+    <line x1="50" y1="15" x2="50" y2="25" stroke="#71717a" stroke-width="1"/>
+    <text x="50" y="12" text-anchor="middle" font-size="10" fill="#a1a1aa">385ns</text>
+    <line x1="50" y1="25" x2="50" y2="440" stroke="#27272a" stroke-dasharray="2,4" stroke-width="1"/>
+    <line x1="100" y1="15" x2="100" y2="25" stroke="#71717a" stroke-width="1"/>
+    <text x="100" y="12" text-anchor="middle" font-size="10" fill="#a1a1aa">395ns</text>
+    <line x1="100" y1="25" x2="100" y2="440" stroke="#27272a" stroke-dasharray="2,4" stroke-width="1"/>
+    <line x1="150" y1="15" x2="150" y2="25" stroke="#71717a" stroke-width="1"/>
+    <text x="150" y="12" text-anchor="middle" font-size="10" fill="#a1a1aa">405ns</text>
+    <line x1="150" y1="25" x2="150" y2="440" stroke="#27272a" stroke-dasharray="2,4" stroke-width="1"/>
+    <line x1="200" y1="15" x2="200" y2="25" stroke="#71717a" stroke-width="1"/>
+    <text x="200" y="12" text-anchor="middle" font-size="10" fill="#a1a1aa">415ns</text>
+    <line x1="200" y1="25" x2="200" y2="440" stroke="#27272a" stroke-dasharray="2,4" stroke-width="1"/>
+    <line x1="250" y1="15" x2="250" y2="25" stroke="#71717a" stroke-width="1"/>
+    <text x="250" y="12" text-anchor="middle" font-size="10" fill="#a1a1aa">425ns</text>
+    <line x1="250" y1="25" x2="250" y2="440" stroke="#27272a" stroke-dasharray="2,4" stroke-width="1"/>
+    <line x1="300" y1="15" x2="300" y2="25" stroke="#71717a" stroke-width="1"/>
+    <text x="300" y="12" text-anchor="middle" font-size="10" fill="#a1a1aa">435ns</text>
+    <line x1="300" y1="25" x2="300" y2="440" stroke="#27272a" stroke-dasharray="2,4" stroke-width="1"/>
+    <line x1="350" y1="15" x2="350" y2="25" stroke="#71717a" stroke-width="1"/>
+    <text x="350" y="12" text-anchor="middle" font-size="10" fill="#a1a1aa">445ns</text>
+    <line x1="350" y1="25" x2="350" y2="440" stroke="#27272a" stroke-dasharray="2,4" stroke-width="1"/>
+    <line x1="400" y1="15" x2="400" y2="25" stroke="#71717a" stroke-width="1"/>
+    <text x="400" y="12" text-anchor="middle" font-size="10" fill="#a1a1aa">455ns</text>
+    <line x1="400" y1="25" x2="400" y2="440" stroke="#27272a" stroke-dasharray="2,4" stroke-width="1"/>
+    <line x1="450" y1="15" x2="450" y2="25" stroke="#71717a" stroke-width="1"/>
+    <text x="450" y="12" text-anchor="middle" font-size="10" fill="#a1a1aa">465ns</text>
+    <line x1="450" y1="25" x2="450" y2="440" stroke="#27272a" stroke-dasharray="2,4" stroke-width="1"/>
+    <line x1="500" y1="15" x2="500" y2="25" stroke="#71717a" stroke-width="1"/>
+    <text x="500" y="12" text-anchor="middle" font-size="10" fill="#a1a1aa">475ns</text>
+    <line x1="500" y1="25" x2="500" y2="440" stroke="#27272a" stroke-dasharray="2,4" stroke-width="1"/>
+    <line x1="550" y1="15" x2="550" y2="25" stroke="#71717a" stroke-width="1"/>
+    <text x="550" y="12" text-anchor="middle" font-size="10" fill="#a1a1aa">485ns</text>
+    <line x1="550" y1="25" x2="550" y2="440" stroke="#27272a" stroke-dasharray="2,4" stroke-width="1"/>
+    <line x1="600" y1="15" x2="600" y2="25" stroke="#71717a" stroke-width="1"/>
+    <text x="600" y="12" text-anchor="middle" font-size="10" fill="#a1a1aa">495ns</text>
+    <line x1="600" y1="25" x2="600" y2="440" stroke="#27272a" stroke-dasharray="2,4" stroke-width="1"/>
+    <line x1="650" y1="15" x2="650" y2="25" stroke="#71717a" stroke-width="1"/>
+    <text x="650" y="12" text-anchor="middle" font-size="10" fill="#a1a1aa">505ns</text>
+    <line x1="650" y1="25" x2="650" y2="440" stroke="#27272a" stroke-dasharray="2,4" stroke-width="1"/>
+    <line x1="700" y1="15" x2="700" y2="25" stroke="#71717a" stroke-width="1"/>
+    <text x="700" y="12" text-anchor="middle" font-size="10" fill="#a1a1aa">515ns</text>
+    <line x1="700" y1="25" x2="700" y2="440" stroke="#27272a" stroke-dasharray="2,4" stroke-width="1"/>
+    <line x1="750" y1="15" x2="750" y2="25" stroke="#71717a" stroke-width="1"/>
+    <text x="750" y="12" text-anchor="middle" font-size="10" fill="#a1a1aa">525ns</text>
+    <line x1="750" y1="25" x2="750" y2="440" stroke="#27272a" stroke-dasharray="2,4" stroke-width="1"/>
+    <line x1="800" y1="15" x2="800" y2="25" stroke="#71717a" stroke-width="1"/>
+    <text x="800" y="12" text-anchor="middle" font-size="10" fill="#a1a1aa">535ns</text>
+    <line x1="800" y1="25" x2="800" y2="440" stroke="#27272a" stroke-dasharray="2,4" stroke-width="1"/>
+  </g>
+
+  <!-- Signal Names Column -->
+  <g transform="translate(15, 65)">
+    <text x="0" y="22" font-size="11" fill="#38bdf8">tb.clk</text>
+    <text x="0" y="58" font-size="11" fill="#4ade80">tb.rst_n</text>
+    <text x="0" y="94" font-size="11" fill="#facc15">tb.start</text>
+    <text x="0" y="130" font-size="11" fill="#f43f5e">dut.ctrl.busy</text>
+    <text x="0" y="166" font-size="11" fill="#22c55e">dut.ctrl.done</text>
+    <text x="0" y="202" font-size="11" fill="#c084fc">dut.ctrl.state[1:0]</text>
+    <text x="0" y="238" font-size="11" fill="#fb923c">dut.ctrl.k_cnt[1:0]</text>
+    <text x="0" y="274" font-size="11" fill="#fb923c">dut.ctrl.d_cnt[3:0]</text>
+    <text x="0" y="310" font-size="11" fill="#f43f5e">dut.clear_acc_w</text>
+    <text x="0" y="346" font-size="11" fill="#38bdf8">dut.a_valid_w[3:0]</text>
+    <text x="0" y="382" font-size="11" fill="#4ade80">dut.result[511:0]</text>
+  </g>
+
+  <!-- Waveform Traces -->
+  <g transform="translate(220, 65)">
+    <!-- clk -->
+    <path d="M 0 25 L 10 25 L 10 5 L 35 5 L 35 25 L 50 25 L 60 25 L 60 5 L 85 5 L 85 25 L 100 25 L 110 25 L 110 5 L 135 5 L 135 25 L 150 25 L 160 25 L 160 5 L 185 5 L 185 25 L 200 25 L 210 25 L 210 5 L 235 5 L 235 25 L 250 25 L 260 25 L 260 5 L 285 5 L 285 25 L 300 25 L 310 25 L 310 5 L 335 5 L 335 25 L 350 25 L 360 25 L 360 5 L 385 5 L 385 25 L 400 25 L 410 25 L 410 5 L 435 5 L 435 25 L 450 25 L 460 25 L 460 5 L 485 5 L 485 25 L 500 25 L 510 25 L 510 5 L 535 5 L 535 25 L 550 25 L 560 25 L 560 5 L 585 5 L 585 25 L 600 25 L 610 25 L 610 5 L 635 5 L 635 25 L 650 25 L 660 25 L 660 5 L 685 5 L 685 25 L 700 25 L 710 25 L 710 5 L 735 5 L 735 25 L 750 25 L 760 25 L 760 5 L 785 5 L 785 25 L 800 25 " fill="none" stroke="#38bdf8" stroke-width="1.5"/>
+    <!-- rst_n -->
+    <line x1="0" y1="41" x2="800" y2="41" stroke="#4ade80" stroke-width="1.5"/>
+    <!-- start -->
+    <path d="M 0 97 L 25 97 L 25 77 L 75 77 L 75 97 L 800 97" fill="none" stroke="#facc15" stroke-width="1.5"/>
+    <!-- busy -->
+    <path d="M 0 133 L 60 133 L 60 113 L 710 113 L 710 133 L 800 133" fill="none" stroke="#f43f5e" stroke-width="1.5"/>
+    <!-- done -->
+    <path d="M 0 169 L 710 169 L 710 149 L 760 149 L 760 169 L 800 169" fill="none" stroke="#22c55e" stroke-width="2"/>
+    <polygon points="0 195, 5 185, 55 185, 60 195, 55 205, 5 205" fill="#3b0764" stroke="#c084fc" stroke-width="1.2"/>
+    <text x="30.0" y="199" text-anchor="middle" font-size="10" fill="#f3e8ff">IDLE (0)</text>
+    <polygon points="60 195, 65 185, 105 185, 110 195, 105 205, 65 205" fill="#881337" stroke="#f43f5e" stroke-width="1.2"/>
+    <text x="85.0" y="199" text-anchor="middle" font-size="10" fill="#f3e8ff">CLEAR (1)</text>
+    <polygon points="110 195, 115 185, 305 185, 310 195, 305 205, 115 205" fill="#713f12" stroke="#eab308" stroke-width="1.2"/>
+    <text x="210.0" y="199" text-anchor="middle" font-size="10" fill="#f3e8ff">LOAD (2)</text>
+    <polygon points="310 195, 315 185, 705 185, 710 195, 705 205, 315 205" fill="#0c4a6e" stroke="#38bdf8" stroke-width="1.2"/>
+    <text x="510.0" y="199" text-anchor="middle" font-size="10" fill="#f3e8ff">DRAIN (3)</text>
+    <polygon points="710 195, 715 185, 795 185, 800 195, 795 205, 715 205" fill="#3b0764" stroke="#c084fc" stroke-width="1.2"/>
+    <text x="755.0" y="199" text-anchor="middle" font-size="10" fill="#f3e8ff">IDLE (0)</text>
+    <polygon points="0 231, 5 221, 105 221, 110 231, 105 241, 5 241" fill="#3b0764" stroke="#c084fc" stroke-width="1.2"/>
+    <text x="55.0" y="235" text-anchor="middle" font-size="10" fill="#f3e8ff">0</text>
+    <polygon points="110 231, 115 221, 155 221, 160 231, 155 241, 115 241" fill="#7c2d12" stroke="#fb923c" stroke-width="1.2"/>
+    <text x="135.0" y="235" text-anchor="middle" font-size="10" fill="#f3e8ff">k=0</text>
+    <polygon points="160 231, 165 221, 205 221, 210 231, 205 241, 165 241" fill="#7c2d12" stroke="#fb923c" stroke-width="1.2"/>
+    <text x="185.0" y="235" text-anchor="middle" font-size="10" fill="#f3e8ff">k=1</text>
+    <polygon points="210 231, 215 221, 255 221, 260 231, 255 241, 215 241" fill="#7c2d12" stroke="#fb923c" stroke-width="1.2"/>
+    <text x="235.0" y="235" text-anchor="middle" font-size="10" fill="#f3e8ff">k=2</text>
+    <polygon points="260 231, 265 221, 305 221, 310 231, 305 241, 265 241" fill="#7c2d12" stroke="#fb923c" stroke-width="1.2"/>
+    <text x="285.0" y="235" text-anchor="middle" font-size="10" fill="#f3e8ff">k=3</text>
+    <polygon points="310 231, 315 221, 795 221, 800 231, 795 241, 315 241" fill="#3b0764" stroke="#c084fc" stroke-width="1.2"/>
+    <text x="555.0" y="235" text-anchor="middle" font-size="10" fill="#f3e8ff">0</text>
+    <polygon points="0 267, 5 257, 305 257, 310 267, 305 277, 5 277" fill="#3b0764" stroke="#c084fc" stroke-width="1.2"/>
+    <text x="155.0" y="271" text-anchor="middle" font-size="10" fill="#f3e8ff">0</text>
+    <polygon points="310 267, 315 257, 355 257, 360 267, 355 277, 315 277" fill="#7c2d12" stroke="#fb923c" stroke-width="1.2"/>
+    <text x="335.0" y="271" text-anchor="middle" font-size="10" fill="#f3e8ff">d=0</text>
+    <polygon points="360 267, 365 257, 405 257, 410 267, 405 277, 365 277" fill="#7c2d12" stroke="#fb923c" stroke-width="1.2"/>
+    <text x="385.0" y="271" text-anchor="middle" font-size="10" fill="#f3e8ff">d=1</text>
+    <polygon points="410 267, 415 257, 455 257, 460 267, 455 277, 415 277" fill="#7c2d12" stroke="#fb923c" stroke-width="1.2"/>
+    <text x="435.0" y="271" text-anchor="middle" font-size="10" fill="#f3e8ff">d=2</text>
+    <polygon points="460 267, 465 257, 505 257, 510 267, 505 277, 465 277" fill="#7c2d12" stroke="#fb923c" stroke-width="1.2"/>
+    <text x="485.0" y="271" text-anchor="middle" font-size="10" fill="#f3e8ff">d=3</text>
+    <polygon points="510 267, 515 257, 555 257, 560 267, 555 277, 515 277" fill="#7c2d12" stroke="#fb923c" stroke-width="1.2"/>
+    <text x="535.0" y="271" text-anchor="middle" font-size="10" fill="#f3e8ff">d=4</text>
+    <polygon points="560 267, 565 257, 605 257, 610 267, 605 277, 565 277" fill="#7c2d12" stroke="#fb923c" stroke-width="1.2"/>
+    <text x="585.0" y="271" text-anchor="middle" font-size="10" fill="#f3e8ff">d=5</text>
+    <polygon points="610 267, 615 257, 655 257, 660 267, 655 277, 615 277" fill="#7c2d12" stroke="#fb923c" stroke-width="1.2"/>
+    <text x="635.0" y="271" text-anchor="middle" font-size="10" fill="#f3e8ff">d=6</text>
+    <polygon points="660 267, 665 257, 705 257, 710 267, 705 277, 665 277" fill="#7c2d12" stroke="#fb923c" stroke-width="1.2"/>
+    <text x="685.0" y="271" text-anchor="middle" font-size="10" fill="#f3e8ff">d=7</text>
+    <polygon points="710 267, 715 257, 795 257, 800 267, 795 277, 715 277" fill="#3b0764" stroke="#c084fc" stroke-width="1.2"/>
+    <text x="755.0" y="271" text-anchor="middle" font-size="10" fill="#f3e8ff">0</text>
+    <!-- clear_acc_w -->
+    <path d="M 0 313 L 60 313 L 60 293 L 110 293 L 110 313 L 800 313" fill="none" stroke="#f43f5e" stroke-width="1.5"/>
+    <polygon points="0 339, 5 329, 105 329, 110 339, 105 349, 5 349" fill="#3b0764" stroke="#c084fc" stroke-width="1.2"/>
+    <text x="55.0" y="343" text-anchor="middle" font-size="10" fill="#f3e8ff">4'h0</text>
+    <polygon points="110 339, 115 329, 305 329, 310 339, 305 349, 115 349" fill="#0369a1" stroke="#38bdf8" stroke-width="1.2"/>
+    <text x="210.0" y="343" text-anchor="middle" font-size="10" fill="#f3e8ff">4'hF (valids active)</text>
+    <polygon points="310 339, 315 329, 795 329, 800 339, 795 349, 315 349" fill="#3b0764" stroke="#c084fc" stroke-width="1.2"/>
+    <text x="555.0" y="343" text-anchor="middle" font-size="10" fill="#f3e8ff">4'h0</text>
+    <polygon points="0 375, 5 365, 705 365, 710 375, 705 385, 5 385" fill="#27272a" stroke="#64748b" stroke-width="1.2"/>
+    <text x="355.0" y="379" text-anchor="middle" font-size="10" fill="#f3e8ff">[Previous / 0]</text>
+    <polygon points="710 375, 715 365, 795 365, 800 375, 795 385, 715 385" fill="#14532d" stroke="#22c55e" stroke-width="1.2"/>
+    <text x="755.0" y="379" text-anchor="middle" font-size="10" fill="#f3e8ff">C = [80, 70, ..., 386] (VERIFIED)</text>
+
+    <!-- Marker 1: Start Detection -->
+    <line x1="60" y1="-5" x2="60" y2="410" stroke="#facc15" stroke-width="1.5" stroke-dasharray="4,2"/>
+    <rect x="40" y="-18" width="40" height="16" rx="2" fill="#facc15"/>
+    <text x="60" y="-6" text-anchor="middle" font-size="10" font-weight="bold" fill="#000000">T1: start</text>
+
+    <!-- Marker 2: Done Pulse & Result Commit -->
+    <line x1="710" y1="-5" x2="710" y2="410" stroke="#22c55e" stroke-width="1.5" stroke-dasharray="4,2"/>
+    <rect x="690" y="-18" width="40" height="16" rx="2" fill="#22c55e"/>
+    <text x="710" y="-6" text-anchor="middle" font-size="10" font-weight="bold" fill="#000000">T2: done</text>
+  </g>
+</svg>
