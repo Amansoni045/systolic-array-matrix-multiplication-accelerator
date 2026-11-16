@@ -14,7 +14,7 @@
 | **IEEE Project Report (PDF)** | Formal 4-page IEEE conference format report with architectural block diagrams, verification tables, waveforms, and references | [**IEEE_Project_Report_Phase_1.pdf**](report/IEEE_Project_Report_Phase_1.pdf) |
 | **Project Report (Markdown)** | Full GitHub-rendered markdown edition of the IEEE Project Report | [**REPORT.md**](report/REPORT.md) |
 | **LaTeX Report Source** | IEEEtran conference format LaTeX source file | [**IEEE_Project_Report_Phase_1.tex**](report/IEEE_Project_Report_Phase_1.tex) |
-| **Prototype Demo Video** | 5-minute video demonstration covering project idea, 5 members, block diagrams, code walkthrough, and live simulation | [**Prototype Video Link (YouTube / Drive)**](https://youtu.be/placeholder-demo-video) |
+| **Prototype Demo Video** | 5-minute video demonstration covering project idea, 3 members, block diagrams, code walkthrough, and live simulation | [**Prototype Video Link (YouTube / Drive)**](https://youtu.be/placeholder-demo-video) |
 | **Video Script & Guide** | Second-by-second presentation plan and word-for-word spoken script for the team | [**PROTOTYPE_VIDEO_GUIDE.md**](docs/PROTOTYPE_VIDEO_GUIDE.md) |
 | **Submission Form** | Official submission portal (Deadline: Nov 16, 2026, 11:59 PM) | [Google Form Submission](https://docs.google.com/forms/d/e/1FAIpQLSc6Cx8OrOQLGj_X2ZMkyG5jc8mokq36mGRq2x8jGRNV1sbegA/viewform) |
 
@@ -65,13 +65,45 @@ Systolic arrays stream data rhythmically through a tightly-coupled 2D grid of Pr
 
 ## Team Members & Responsibilities
 
-| Member | Role & Module Ownership | Key Contributions |
-|:---|:---|:---|
-| **Aman Soni** | **Processing Element Architect & Designer**<br>`rtl/processing_element.v`<br>`testbench/tb_processing_element.v` | Architectural specification of PE; designed 8-bit sign-extension, $16 \times 16$ multiplier, 32-bit accumulator, and dual forwarding pipeline; verified all 10 unit test cases (100% pass). |
-| **Mayank Sharma** | **Systolic Array Core Engineer**<br>`rtl/systolic_array.v`<br>`testbench/tb_systolic_array_core.v` | Designed 4×4 2D mesh grid; implemented perimeter row/column skewing pipeline; built cycle-accurate array scoreboard verifying 105 matrices across 1,533 clock edges. |
-| **Ankit Pandey** | **Controller & Top-Level Integration**<br>`rtl/matrix_controller.v`<br>`rtl/systolic_array_top.v`<br>`testbench/tb_systolic_array.v` | Designed 4-state autonomous FSM; formulated 14-cycle compute schedule; integrated top-level module; authored 9 system test suites (extremes, back-to-back, reset recovery). |
-| **Aditya Verma** | **Verification & Algorithmic Modeling**<br>`verification/golden_model.py`<br>`verification/test_vectors/` | Implemented Python golden reference model; generated automated 40-vector test suite; developed `$readmemh` hex export and 512-bit bus hex unpacking & verification. |
-| **Priyanshu Kumar** | **Timing Analysis & System Validation**<br>`docs/PROTOTYPE_VIDEO_GUIDE.md`<br>`report/` | Conducted GTKWave/VaporView waveform analysis; verified single-cycle `done` pulse and mid-compute reset recovery; co-authored IEEE report and prototype video demonstration script. |
+### **Member 1 — Aman Soni: Processing Element Design (Datapath RTL)**
+**Domain:** Owns the basic computational unit.  
+**Tasks Completed:**
+1. Implemented the PE module in Verilog (`rtl/processing_element.v`).
+2. Implemented signed 8-bit multiplication.
+3. Implemented the 32-bit accumulator to eliminate arithmetic overflow.
+4. Implemented clock and reset functionality.
+5. Implemented $A$ and $B$ forwarding registers.
+6. Implemented valid signals for data synchronization.
+7. Wrote unit testbench (`testbench/tb_processing_element.v`) to verify individual PE operations (10/10 passed).  
+**Files Created:** `rtl/processing_element.v`, `testbench/tb_processing_element.v`  
+**Expected Output Delivered:** One fully functional PE that can correctly multiply and accumulate signed values and forward data to neighbouring PEs.
+
+### **Member 2 — Mayank Sharma: Systolic Array Architecture (Hardware Integration)**
+**Domain:** Owns the 16-PE network and data movement.  
+**Tasks Completed:**
+1. Instantiated 16 processing elements using nested `generate` loops.
+2. Arranged them into a 4 × 4 2D grid.
+3. Connected horizontal $A$ data paths.
+4. Connected vertical $B$ data paths.
+5. Connected valid signals between neighbouring PEs.
+6. Implemented input skewing and timing alignment (delaying row $r$ by $r$ cycles and column $c$ by $c$ cycles).
+7. Connected all 16 PE accumulators to the output matrix interface.  
+**Files Created:** `rtl/systolic_array.v` (and core scoreboard `testbench/tb_systolic_array_core.v`).  
+**Expected Output Delivered:** A correctly connected 4 × 4 systolic array in which data travels through the PEs and the multiply-accumulate operations happen at the correct scheduled cycle.
+
+### **Member 3 — Ankit Kumar Pandey: Controller and Verification (Control RTL + Testing)**
+**Domain:** Owns the complete operation from input matrices to verified results.  
+**Tasks Completed:**
+1. Implemented the input matrix registers/storage.
+2. Implemented the controller state machine (`rtl/matrix_controller.v`).
+3. Generated unskewed input streams for every PE row and column.
+4. Generated the `start`, `busy`, and `done` handshake signals.
+5. Implemented output collection and result-valid handling in `rtl/systolic_array_top.v`.
+6. Developed self-checking top-level testbench (`testbench/tb_systolic_array.v`).
+7. Created reference matrix multiplication model (`verification/golden_model.py`) and compared all 16 outputs.
+8. Tested positive, negative, zero, and randomly generated matrices (40 test vectors).  
+**Files Created:** `rtl/matrix_controller.v`, `rtl/systolic_array_top.v`, `testbench/tb_systolic_array.v`, `verification/golden_model.py`  
+**Expected Output Delivered:** A complete, testable accelerator that receives two matrices, controls the array, produces the result, and verifies it against the correct answer.
 
 ---
 
@@ -182,39 +214,8 @@ gtkwave simulation/waveforms/tb_systolic_array.vcd
 
 ---
 
-## Directory Structure
-```text
-systolic-array-matrix-multiplication-accelerator/
-├── README.md                                # Project overview, submission links, and run instructions
-├── rtl/                                     # Synthesizable RTL designs
-│   ├── processing_element.v                 # INT8 MAC Processing Element
-│   ├── systolic_array.v                     # 4×4 2D Mesh array with internal skewing
-│   ├── matrix_controller.v                  # 4-state FSM execution controller
-│   └── systolic_array_top.v                 # Unified accelerator top-level module
-├── testbench/                               # Verification testbenches
-│   ├── tb_processing_element.v              # PE unit testbench (10 tests)
-│   ├── tb_systolic_array_core.v             # 2D Array cycle scoreboard (105 matrices)
-│   └── tb_systolic_array.v                  # System integration testbench (9 tests)
-├── verification/                            # Algorithmic modeling and test vectors
-│   ├── golden_model.py                      # Python matrix multiplication reference model
-│   └── test_vectors/                        # 40 directed and randomized test vectors
-├── simulation/                              # Simulation binaries and waveform dumps
-│   ├── results/                             # Compiled .vvp simulation files
-│   └── waveforms/                           # Generated .vcd waveform dumps
-├── report/                                  # IEEE Project Report and figures
-│   ├── IEEE_Project_Report_Phase_1.pdf      # Compiled IEEE 4-page conference PDF
-│   ├── IEEE_Project_Report_Phase_1.tex      # IEEEtran LaTeX source code
-│   ├── IEEE_Project_Report_Phase_1.html     # HTML source for PDF compilation
-│   ├── REPORT.md                            # Markdown edition of the report
-│   └── figures/                             # High-resolution architectural & waveform diagrams
-└── docs/                                    # Documentation and guides
-    └── PROTOTYPE_VIDEO_GUIDE.md             # 5-minute video presentation script and recording guide
-```
+## References
 
----
-
-## Phase 2 Roadmap
-- [ ] Integrate dual-port Block RAMs (BRAMs) for local matrix activation and weight storage.
-- [ ] Implement an AXI4-Stream slave/master interface for DMA burst streaming.
-- [ ] Develop dynamic matrix tiling hardware to support arbitrary $M \times K \times N$ dimensions.
-- [ ] Synthesize, place, and route on AMD Xilinx Artix-7/Zynq FPGA with timing and power analysis.
+1. H. T. Kung and C. E. Leiserson, "Systolic arrays (for VLSI)," in *Sparse Matrix Proceedings 1978*, I. S. Duff and G. W. Stewart, Eds. Philadelphia, PA, USA: SIAM, 1979, pp. 256–282. [Online]. Available: [https://apps.dtic.mil/sti/tr/pdf/ADA067674.pdf](https://apps.dtic.mil/sti/tr/pdf/ADA067674.pdf)
+2. D. A. Patterson and J. L. Hennessy, *Computer Organization and Design RISC-V Edition: The Hardware/Software Interface*, 2nd ed. San Francisco, CA, USA: Morgan Kaufmann, 2020, ch. 4–6. [Online]. Available: [https://www.elsevier.com/books/computer-organization-and-design-risc-v-edition/patterson/978-0-12-812275-4](https://www.elsevier.com/books/computer-organization-and-design-risc-v-edition/patterson/978-0-12-812275-4)
+3. N. P. Jouppi et al., "In-datacenter performance analysis of a tensor processing unit," in *Proc. 44th Annu. Int. Symp. Comput. Archit. (ISCA)*, Toronto, ON, Canada, Jun. 2017, pp. 1–12. [Online]. Available: [https://doi.org/10.1145/3079856.3080246](https://doi.org/10.1145/3079856.3080246)

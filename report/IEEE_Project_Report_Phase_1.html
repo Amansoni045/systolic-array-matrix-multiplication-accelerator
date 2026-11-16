@@ -6,7 +6,7 @@
 <style>
   @page {
     size: letter;
-    margin: 0.7in 0.6in 0.7in 0.6in;
+    margin: 0.65in 0.6in 0.65in 0.6in;
   }
   body {
     font-family: "Times New Roman", Times, Georgia, serif;
@@ -22,28 +22,33 @@
   /* Title & Author Block (Spans 2 columns) */
   .title-block {
     text-align: center;
-    margin-bottom: 14pt;
+    margin-bottom: 12pt;
   }
   .title-block h1 {
     font-size: 19pt;
     font-weight: bold;
-    margin: 0 0 8pt 0;
+    margin: 0 0 6pt 0;
     line-height: 1.15;
   }
   .authors {
-    font-size: 10.5pt;
+    font-size: 11pt;
+    font-weight: normal;
     margin: 0 0 3pt 0;
   }
   .affiliation {
-    font-size: 9pt;
+    font-size: 9.5pt;
     font-style: italic;
     color: #222222;
-    margin-bottom: 3pt;
   }
-  .emails {
+  .repo-link {
     font-size: 8.5pt;
     font-family: "Courier New", Courier, monospace;
-    color: #333333;
+    margin-top: 4pt;
+    color: #0f172a;
+  }
+  .repo-link a {
+    color: #0284c7;
+    text-decoration: none;
   }
 
   /* Two Column Container */
@@ -184,20 +189,20 @@
     border-radius: 2px;
   }
 
-  /* Page Break control */
-  .page-break {
-    break-before: page;
-  }
-
   /* References */
   .references ol {
     padding-left: 16pt;
     font-size: 8pt;
-    line-height: 1.2;
+    line-height: 1.25;
   }
   .references li {
-    margin-bottom: 4pt;
+    margin-bottom: 5pt;
     text-align: justify;
+  }
+  .references a {
+    color: #0284c7;
+    text-decoration: none;
+    word-break: break-all;
   }
 </style>
 </head>
@@ -206,10 +211,9 @@
 <!-- Title & Author Block -->
 <div class="title-block">
   <h1>Design, Implementation, and Verification of a 4&times;4 Systolic Array Matrix Multiplication Accelerator: Phase 1</h1>
-  <div class="authors">Aman Soni, Mayank Sharma, Ankit Pandey, Aditya Verma<sup>*</sup>, and Priyanshu Kumar<sup>*</sup></div>
-  <div class="affiliation">Department of Computer Science and Engineering (AI)<br>Newton School of Technology, Sonipat, India</div>
-  <div class="emails">Email: {amansoni.pali001, sharmamayank01010, ankitgkp}@gmail.com</div>
-  <div style="font-size: 7.5pt; font-style: italic; color: #555; margin-top: 2pt;">*Contributed equally to verification modeling, test vector automation, and benchmark timing analysis.</div>
+  <div class="authors">Aman Soni, Mayank Sharma, and Ankit Kumar Pandey</div>
+  <div class="affiliation">Department of CSE (AI)<br>Newton School of Technology, Sonipat</div>
+  <div class="repo-link">GitHub Repository: <a href="https://github.com/Amansoni045/systolic-array-matrix-multiplication-accelerator">https://github.com/Amansoni045/systolic-array-matrix-multiplication-accelerator</a></div>
 </div>
 
 <div class="columns-container">
@@ -217,17 +221,15 @@
   <!-- Abstract & Index Terms -->
   <div class="abstract-container">
     <p class="no-indent"><span class="abstract-heading">Abstract</span>&mdash;This project implements a hardware-efficient, highly parallel 4&times;4 systolic array matrix multiplication accelerator in Verilog HDL as Phase 1 of an energy-efficient General Matrix Multiply (GEMM) processing engine. The accelerator features signed 8-bit integer operands (INT8) and 32-bit accumulators (INT32) to prevent arithmetic overflow during accumulation. A 2D mesh grid of 16 Processing Elements (PEs) executes pipelined Multiply-Accumulate (MAC) operations with concurrent horizontal and vertical operand forwarding. The core incorporates an internal register skewing pipeline that eliminates external timing alignment buffers, accepting unskewed matrix streams directly. A four-state Mealy/Moore finite state machine (FSM) controller orchestrates an autonomous 14-clock-cycle execution schedule (1 clear cycle, 4 load cycles, 8 drain cycles, and 1 done pulse cycle) with deterministic handshaking. The hardware is verified across four abstraction levels: unit PE tests (10/10 passed), cycle-by-cycle array core tests (105 matrices across 1,533 clock edges verified against a software model), integrated system tests (9/9 passed, including extreme signed values, back-to-back operations, and mid-compute reset recovery), and an algorithmic Python golden model (40 randomized/corner-case vectors passed). Waveform evidence confirms single-cycle pulse outputs, exact 14-cycle latency, and full functional correctness.</p>
-    <div class="index-terms">Index Terms&mdash;Systolic array, Matrix multiplication, GEMM, Processing Element, Hardware Accelerator, Verilog HDL, RTL Verification, Deep Learning.</div>
+    <div class="index-terms">Index Terms&mdash;Systolic array, Matrix multiplication, GEMM, Processing Element, Hardware Accelerator, Verilog HDL, RTL Verification.</div>
   </div>
 
   <h2>I. Literature Review</h2>
   <p>Matrix multiplication represents the computational kernel of modern artificial intelligence, deep neural networks (DNNs), computer vision, and scientific computing [1]. Standard matrix-matrix multiplication (<em>C = A &times; B</em>) of two <em>N &times; N</em> matrices requires <em>O(N<sup>3</sup>)</em> multiply-accumulate operations over <em>O(N<sup>2</sup>)</em> data elements. In conventional Von Neumann architectures, fetching operands from off-chip memory for each arithmetic operation introduces the memory bandwidth bottleneck (the &ldquo;memory wall&rdquo;), resulting in substantial energy dissipation and low computational throughput [2].</p>
 
-  <p>To overcome these constraints, H. T. Kung and C. E. Leiserson proposed the systolic array architecture in 1978 [3]. A systolic array is a network of tightly coupled, homogeneous Processing Elements (PEs) that compute and pass data rhythmically through the system. Instead of re-reading operands from memory, data elements broadcast or stream through the array, allowing an operand to be reused multiple times across adjacent PEs before being discarded. Consequently, systolic arrays achieve high operational intensity, performing <em>O(N<sup>3</sup>)</em> arithmetic operations while requiring only <em>O(N)</em> memory bandwidth at the array perimeter [4].</p>
+  <p>To overcome these constraints, H. T. Kung and C. E. Leiserson proposed the systolic array architecture in 1978 [3]. A systolic array is a network of tightly coupled, homogeneous Processing Elements (PEs) that compute and pass data rhythmically through the system. Instead of re-reading operands from memory, data elements broadcast or stream through the array, allowing an operand to be reused multiple times across adjacent PEs before being discarded. Consequently, systolic arrays achieve high operational intensity, performing <em>O(N<sup>3</sup>)</em> arithmetic operations while requiring only <em>O(N)</em> memory bandwidth at the array perimeter [3].</p>
 
-  <p>Modern domain-specific accelerators, such as Google's Tensor Processing Unit (TPU) [1], NVIDIA's Tensor Cores, and various edge-AI neural processing units (NPUs), rely extensively on 2D systolic arrays. Systolic architectures are broadly categorized into three dataflow paradigms: (1) <em>Weight-Stationary (WS)</em>, where weights remain stationary while activations and sums flow; (2) <em>Input-Stationary (IS)</em>, where input activations remain stationary; and (3) <em>Output-Stationary (OS)</em>, where partial sums accumulate locally within each PE's internal register while input matrices <em>A</em> and <em>B</em> stream horizontally and vertically through the array [5].</p>
-
-  <p>Phase 1 of this project implements an Output-Stationary 4&times;4 systolic array architecture. By holding partial sums locally in each PE until the complete dot-product completes, internal register switching activity and external interconnect routing are substantially minimized. Furthermore, by implementing signed 8-bit operands with 32-bit accumulators, our design reflects contemporary low-power edge-AI quantization standards [6].</p>
+  <p>Modern domain-specific accelerators, such as Google's Tensor Processing Unit (TPU) [1], rely extensively on 2D systolic arrays. Systolic architectures are broadly categorized into three dataflow paradigms: Weight-Stationary (WS), Input-Stationary (IS), and Output-Stationary (OS) [1]. Phase 1 of this project implements an Output-Stationary 4&times;4 systolic array architecture. By holding partial sums locally in each PE until the complete dot-product completes, internal register switching activity and external interconnect routing are substantially minimized. Furthermore, by implementing signed 8-bit operands with 32-bit accumulators, our design reflects contemporary low-power edge-AI quantization standards [2].</p>
 
   <h2>II. Proposed Solution</h2>
 
@@ -438,13 +440,43 @@
   </figure>
 
   <h2>IV. Individual Contributions</h2>
-  <p class="no-indent">The development, verification, and documentation tasks were partitioned among the five team members as follows:</p>
+  <p class="no-indent">The development, verification, and integration tasks were partitioned among the three team members as follows:</p>
   <ul>
-    <li><strong>Aman Soni:</strong> Architectural specification and RTL design of the Multiply-Accumulate Processing Element (<code>rtl/processing_element.v</code>). Implemented signed sign-extension logic, 16-bit signed multiplier, 32-bit accumulator, and dual registered forwarding channels. Authored the unit-level PE testbench (<code>testbench/tb_processing_element.v</code>) and verified all 10 unit test cases.</li>
-    <li><strong>Mayank Sharma:</strong> RTL implementation of the 4&times;4 2D systolic array mesh grid (<code>rtl/systolic_array.v</code>). Designed the integrated row and column skewing delay register pipelines. Authored the cycle-accurate array core testbench (<code>testbench/tb_systolic_array_core.v</code>) and verified 105 matrix multiplications across 1,533 clock edges.</li>
-    <li><strong>Ankit Pandey:</strong> RTL implementation of the finite state machine Matrix Controller (<code>rtl/matrix_controller.v</code>) and top-level accelerator integration (<code>rtl/systolic_array_top.v</code>). Formulated the 14-cycle execution schedule. Authored the system-level integration testbench (<code>testbench/tb_systolic_array.v</code>) verifying all 9 system test cases.</li>
-    <li><strong>Aditya Verma:</strong> Developed the algorithmic Python golden reference model (<code>verification/golden_model.py</code>). Implemented the automated 40-vector randomized test suite, <code>$readmemh</code> hex file export, and 512-bit hex bus output unpacking and automated comparison routines.</li>
-    <li><strong>Priyanshu Kumar:</strong> Conducted simulation timing analysis, waveform extraction, and corner-case verification (mid-compute reset recovery, back-to-back operation pipelining, and output stability). Co-authored the project documentation, IEEE report, and prototype demonstration script.</li>
+    <li><strong>Member 1 &mdash; Aman Soni (Processing Element Design &amp; Datapath RTL):</strong>
+      Owned the basic computational unit. Tasks completed:
+      (1) Implemented the PE module in Verilog (<code>rtl/processing_element.v</code>);
+      (2) Implemented signed 8-bit multiplication;
+      (3) Implemented the 32-bit accumulator to eliminate arithmetic overflow;
+      (4) Implemented clock and reset functionality;
+      (5) Implemented <em>A</em> and <em>B</em> forwarding registers;
+      (6) Implemented valid signals for data synchronization;
+      (7) Wrote unit testbench (<code>testbench/tb_processing_element.v</code>) to verify individual PE operations (10/10 passed).<br>
+      <em>Expected Output Delivered:</em> One fully functional PE that correctly multiplies and accumulates signed values and forwards data to neighbouring PEs.
+    </li>
+    <li><strong>Member 2 &mdash; Mayank Sharma (Systolic Array Architecture &amp; Hardware Integration):</strong>
+      Owned the 16-PE network and data movement. Tasks completed:
+      (1) Instantiated 16 processing elements using nested <code>generate</code> loops;
+      (2) Arranged PEs into a 4&times;4 2D grid;
+      (3) Connected horizontal <em>A</em> data paths;
+      (4) Connected vertical <em>B</em> data paths;
+      (5) Connected valid signals between neighbouring PEs;
+      (6) Implemented input skewing and timing alignment (delaying row <em>r</em> by <em>r</em> cycles and column <em>c</em> by <em>c</em> cycles);
+      (7) Connected all 16 PE accumulators to the output matrix interface (<code>rtl/systolic_array.v</code>);
+      (8) Authored core testbench (<code>testbench/tb_systolic_array_core.v</code>) verifying 105 matrices across 1,533 clock edges.<br>
+      <em>Expected Output Delivered:</em> A correctly connected 4&times;4 systolic array in which data travels through the PEs and the multiply-accumulate operations happen at the correct scheduled cycle.
+    </li>
+    <li><strong>Member 3 &mdash; Ankit Kumar Pandey (Controller and Verification &mdash; Control RTL + Testing):</strong>
+      Owned the complete operation from input matrices to verified results. Tasks completed:
+      (1) Implemented input matrix registers and packed bus storage;
+      (2) Implemented the controller state machine (<code>rtl/matrix_controller.v</code>);
+      (3) Generated input streams for every PE row and column;
+      (4) Generated the <code>start</code>, <code>busy</code>, and <code>done</code> handshake signals;
+      (5) Implemented output collection and result-valid handling in <code>rtl/systolic_array_top.v</code>;
+      (6) Developed self-checking top-level testbench (<code>testbench/tb_systolic_array.v</code>);
+      (7) Created algorithmic Python golden model (<code>verification/golden_model.py</code>) and compared all 16 outputs;
+      (8) Tested positive, negative, zero, and randomly generated matrices (40 test vectors).<br>
+      <em>Expected Output Delivered:</em> A complete, testable accelerator that receives two matrices, controls the array, produces the result, and verifies it against the correct answer.
+    </li>
   </ul>
 
   <h2>V. Conclusion and Phase 2 Roadmap</h2>
@@ -455,14 +487,9 @@
   <h2>References</h2>
   <div class="references">
     <ol>
-      <li>N. P. Jouppi et al., &ldquo;In-datacenter performance analysis of a tensor processing unit,&rdquo; in <em>Proc. 44th Annu. Int. Symp. Comput. Archit. (ISCA)</em>, Toronto, ON, Canada, Jun. 2017, pp. 1&ndash;12.</li>
-      <li>D. A. Patterson and J. L. Hennessy, <em>Computer Organization and Design RISC-V Edition: The Hardware/Software Interface</em>, 2nd ed. San Francisco, CA, USA: Morgan Kaufmann, 2020, ch. 4&ndash;6.</li>
-      <li>H. T. Kung and C. E. Leiserson, &ldquo;Systolic arrays (for VLSI),&rdquo; in <em>Sparse Matrix Proc. 1978</em>, I. S. Duff and G. W. Stewart, Eds. Philadelphia, PA: SIAM, 1979, pp. 256&ndash;282.</li>
-      <li>H. T. Kung, &ldquo;Why systolic architectures?&rdquo; <em>IEEE Computer</em>, vol. 15, no. 1, pp. 37&ndash;46, Jan. 1982.</li>
-      <li>Y.-H. Chen, T. Krishna, J. S. Emer, and V. Sze, &ldquo;Eyeriss: An energy-efficient accelerator for deep convolutional neural networks,&rdquo; <em>IEEE J. Solid-State Circuits</em>, vol. 52, no. 1, pp. 127&ndash;138, Jan. 2017.</li>
-      <li>B. Jacob et al., &ldquo;Quantization and training of neural networks for efficient integer-arithmetic-only inference,&rdquo; in <em>Proc. IEEE Conf. Comput. Vis. Pattern Recognit. (CVPR)</em>, Salt Lake City, UT, USA, Jun. 2018, pp. 2704&ndash;2713.</li>
-      <li>S. Williams, <em>Icarus Verilog</em>, ver. 13.0. [Online]. Available: https://github.com/steveicarus/iverilog</li>
-      <li>A. Bybell, <em>GTKWave Waveform Viewer</em>, ver. 3.3. [Online]. Available: https://gtkwave.sourceforge.net/</li>
+      <li>H. T. Kung and C. E. Leiserson, &ldquo;Systolic arrays (for VLSI),&rdquo; in <em>Sparse Matrix Proceedings 1978</em>, I. S. Duff and G. W. Stewart, Eds. Philadelphia, PA, USA: SIAM, 1979, pp. 256&ndash;282. [Online]. Available: <a href="https://apps.dtic.mil/sti/tr/pdf/ADA067674.pdf">https://apps.dtic.mil/sti/tr/pdf/ADA067674.pdf</a></li>
+      <li>D. A. Patterson and J. L. Hennessy, <em>Computer Organization and Design RISC-V Edition: The Hardware/Software Interface</em>, 2nd ed. San Francisco, CA, USA: Morgan Kaufmann, 2020, ch. 4&ndash;6. [Online]. Available: <a href="https://www.elsevier.com/books/computer-organization-and-design-risc-v-edition/patterson/978-0-12-812275-4">https://www.elsevier.com/books/computer-organization-and-design-risc-v-edition/patterson/978-0-12-812275-4</a></li>
+      <li>N. P. Jouppi et al., &ldquo;In-datacenter performance analysis of a tensor processing unit,&rdquo; in <em>Proc. 44th Annu. Int. Symp. Comput. Archit. (ISCA)</em>, Toronto, ON, Canada, Jun. 2017, pp. 1&ndash;12. [Online]. Available: <a href="https://doi.org/10.1145/3079856.3080246">https://doi.org/10.1145/3079856.3080246</a></li>
     </ol>
   </div>
 
