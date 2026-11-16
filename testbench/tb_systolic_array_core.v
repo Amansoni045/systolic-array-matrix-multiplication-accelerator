@@ -1,6 +1,5 @@
 `timescale 1ns/1ps
 
-// Member 2 unit test: does not depend on Member 3's controller/top-level.
 module tb_systolic_array_core;
     reg clk = 0;
     always #5 clk = ~clk;
@@ -24,8 +23,6 @@ module tb_systolic_array_core;
     integer test_id, i, k, bubble;
     integer seed = 32'h4d434134;
 
-    // Independent timing oracle: external slot s reaches PE(r,c) at s+r+c.
-    // Check every accumulator on every edge, including partially filled arrays.
     task tick;
         integer r, c, slot, index;
         begin
@@ -77,7 +74,6 @@ module tb_systolic_array_core;
         begin
             a_valid_in = 0;
             b_valid_in = 0;
-            // Six edges reach C[3][3]; two extra verify results hold.
             for (n = 0; n < 8; n = n + 1) tick;
         end
     endtask
@@ -99,7 +95,6 @@ module tb_systolic_array_core;
     initial begin
         tick;
         rst_n = 1;
-        // Zero, identity, positive, mixed signs, signed extremes, random.
         for (test_id = 0; test_id < 105; test_id = test_id + 1) begin
             clear_array;
             for (i = 0; i < 16; i = i + 1) begin
@@ -121,7 +116,6 @@ module tb_systolic_array_core;
                 endcase
             end
             for (k = 0; k < 4; k = k + 1) begin
-                // Common bubbles preserve operand k alignment across all lanes.
                 bubble = (test_id >= 5) && (($random(seed) & 3) == 0);
                 if (bubble) begin
                     a_valid_in = 0; b_valid_in = 0;
@@ -138,18 +132,15 @@ module tb_systolic_array_core;
             check_matrix;
         end
 
-        // Independent validity patterns exercise every neighbour valid path.
         clear_array;
         for (i = 0; i < 40; i = i + 1) begin
             a_in = $random(seed); b_in = $random(seed);
             a_valid_in = $random(seed); b_valid_in = $random(seed);
             tick;
         end
-        // Clear while operands are in flight, with all external lanes valid.
         a_valid_in = 15; b_valid_in = 15;
         clear_array;
         drain;
-        // Asynchronous reset between edges must cancel a populated pipeline.
         a_valid_in = 15; b_valid_in = 15;
         tick;
         rst_n = 0;
@@ -158,7 +149,6 @@ module tb_systolic_array_core;
         tick;
         rst_n = 1;
         drain;
-        // Restart immediately following a mid-stream clear.
         a_valid_in = 15; b_valid_in = 15;
         tick;
         clear_array;

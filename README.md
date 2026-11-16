@@ -139,7 +139,7 @@ or another valid operand pair contributes to a sum.
 1. Pulse `clear_acc` for one rising edge before each matrix operation.
 2. On the next four rising edges, provide `a_in[r] = A[r][k]` and
    `b_in[c] = B[k][c]`, for `k = 0, 1, 2, 3`. Assert all lane valid bits.
-3. Deassert all input valid bits and let the array drain for six more edges.
+3. Deassert all input valid bits and let the array drain for eight more edges.
 4. Collect all 16 results after the final edge's register updates. A synchronous
    top-level result register can capture them on the following edge.
 
@@ -212,10 +212,10 @@ schedule (all transitions on rising edges of `clk`):
 | 2                  | LOAD k=1 | Drive A[r][1] / B[1][c]                 |
 | 3                  | LOAD k=2 | Drive A[r][2] / B[2][c]                 |
 | 4                  | LOAD k=3 | Drive A[r][3] / B[3][c]                 |
-| 5–10               | DRAIN d=0..5 | `valids=0000`, operands propagate    |
-| 11                 | IDLE   | Latch `result <= acc_in`, pulse `done=1`, `busy=0` |
+| 5–12               | DRAIN d=0..7 | `valids=0000`, operands propagate    |
+| 13                 | IDLE   | Latch `result <= acc_in`, pulse `done=1`, `busy=0` |
 
-Total latency from `start` to `done`: **12 clock cycles**.
+Total latency from `start` to `done`: **14 clock cycles**.
 
 The controller supplies **unskewed** inputs — it does NOT pre-skew the matrix
 streams. The `systolic_array` module handles all internal lane staggering (row `r`

@@ -1,8 +1,5 @@
 `timescale 1ns/1ps
 
-// Fixed 4x4 output-stationary array. Input lane i occupies bits [8*i +: 8].
-// Supply unskewed A[i][k] and B[k][i] together; this module delays lane i
-// by i clocks. Result C[i][j] occupies bits [32*(4*i+j) +: 32].
 module systolic_array (
     input wire clk,
     input wire rst_n,
@@ -73,8 +70,6 @@ module systolic_array (
                     .clear_acc(clear_acc),
                     .a_in(a_link[row][col]),
                     .b_in(b_link[row][col]),
-                    // Clear also invalidates every PE forwarding register,
-                    // cancelling in-flight operands without modifying the PE.
                     .a_valid_in(a_valid_link[row][col] & ~clear_acc),
                     .b_valid_in(b_valid_link[row][col] & ~clear_acc),
                     .a_out(a_link[row][col+1]),

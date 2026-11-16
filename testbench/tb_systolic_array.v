@@ -1,21 +1,12 @@
 `timescale 1ns/1ps
 
-// System-level integration testbench for systolic_array_top.
-// Tests the full pipeline: matrix_controller + systolic_array.
-
 module tb_systolic_array;
 
-    // -------------------------------------------------------------------------
-    // Clock and reset
-    // -------------------------------------------------------------------------
     reg clk = 0;
-    always #5 clk = ~clk;   // 100 MHz, period = 10 ns
+    always #5 clk = ~clk;
 
     reg rst_n;
 
-    // -------------------------------------------------------------------------
-    // DUT signals
-    // -------------------------------------------------------------------------
     reg         start  = 0;
     reg [255:0] a_flat = 0;
     reg [255:0] b_flat = 0;
@@ -23,9 +14,6 @@ module tb_systolic_array;
     wire        done;
     wire [511:0] result;
 
-    // -------------------------------------------------------------------------
-    // DUT instantiation
-    // -------------------------------------------------------------------------
     systolic_array_top dut (
         .clk    (clk),
         .rst_n  (rst_n),
@@ -37,27 +25,19 @@ module tb_systolic_array;
         .result (result)
     );
 
-    // -------------------------------------------------------------------------
-    // Waveform dump
-    // -------------------------------------------------------------------------
     initial begin
         $dumpfile("simulation/waveforms/tb_systolic_array.vcd");
         $dumpvars(0, tb_systolic_array);
     end
 
-    // -------------------------------------------------------------------------
-    // Test infrastructure
-    // -------------------------------------------------------------------------
     integer test_num = 0;
     integer errors   = 0;
     integer r, c, k;
 
-    // Software reference arrays (signed 32-bit)
     integer A[0:3][0:3];
     integer B[0:3][0:3];
     integer C_exp[0:3][0:3];
 
-    // Pack A and B into flat buses
     task pack_matrices;
         integer pr, pc;
         begin
@@ -69,7 +49,6 @@ module tb_systolic_array;
         end
     endtask
 
-    // Compute software reference C = A*B (signed 8-bit inputs, 32-bit accum)
     task compute_expected;
         integer er, ec, ek, sum;
         begin
@@ -83,7 +62,6 @@ module tb_systolic_array;
         end
     endtask
 
-    // Issue a start pulse (apply at negedge, sample at posedge)
     task issue_start;
         begin
             @(negedge clk);
@@ -94,12 +72,11 @@ module tb_systolic_array;
         end
     endtask
 
-    // Wait for done pulse (timeout guard = 200 cycles)
     integer wait_cyc;
     task wait_done;
         begin
             wait_cyc = 0;
-            @(posedge clk);        // consume the posedge that latched start
+            @(posedge clk);
             while (!done && wait_cyc < 200) begin
                 @(posedge clk);
                 wait_cyc = wait_cyc + 1;
@@ -111,7 +88,6 @@ module tb_systolic_array;
         end
     endtask
 
-    // Check result against C_exp; read result at negedge after done posedge
     task check_result;
         integer cr, cc, got, exp_val;
         begin
@@ -129,8 +105,6 @@ module tb_systolic_array;
         end
     endtask
 
-    // Full run: pack -> start -> wait done -> check
-    // Also verifies done is a single-cycle pulse (not stuck high).
     integer done_pulse_count;
     task run_test;
         integer ck;
@@ -139,7 +113,6 @@ module tb_systolic_array;
             compute_expected;
             done_pulse_count = 0;
             issue_start;
-            // Count done pulses across the entire operation window
             wait_cyc = 0;
             @(posedge clk);
             while (!done && wait_cyc < 200) begin
@@ -151,7 +124,6 @@ module tb_systolic_array;
                 errors = errors + 1;
             end else begin
                 done_pulse_count = done_pulse_count + 1;
-                // Verify done is not still high next cycle
                 @(posedge clk);
                 #1;
                 if (done) begin
@@ -166,17 +138,11 @@ module tb_systolic_array;
         end
     endtask
 
-    // -------------------------------------------------------------------------
-    // Timeout watchdog
-    // -------------------------------------------------------------------------
     initial begin
         #500000;
         $fatal(1, "Global timeout — testbench hung");
     end
 
-    // -------------------------------------------------------------------------
-    // Test case 0: Identity × M = M
-    // -------------------------------------------------------------------------
     task test_identity_times_matrix;
         integer ti, tj;
         begin
@@ -190,9 +156,6 @@ module tb_systolic_array;
         end
     endtask
 
-    // -------------------------------------------------------------------------
-    // Test case 1: All-zeros matrices
-    // -------------------------------------------------------------------------
     task test_zero_matrices;
         integer zi, zj;
         begin
@@ -206,9 +169,6 @@ module tb_systolic_array;
         end
     endtask
 
-    // -------------------------------------------------------------------------
-    // Test case 2: Known 4×4 multiply with specific positive values
-    // -------------------------------------------------------------------------
     task test_known_positive;
         integer ki, kj;
         begin
@@ -222,9 +182,6 @@ module tb_systolic_array;
         end
     endtask
 
-    // -------------------------------------------------------------------------
-    // Test case 3: Signed (negative) values
-    // -------------------------------------------------------------------------
     task test_signed_values;
         integer si, sj;
         begin
@@ -238,9 +195,6 @@ module tb_systolic_array;
         end
     endtask
 
-    // -------------------------------------------------------------------------
-    // Test case 4: Mixed positive and negative values
-    // -------------------------------------------------------------------------
     task test_mixed_signs;
         integer mi, mj;
         begin
@@ -254,9 +208,6 @@ module tb_systolic_array;
         end
     endtask
 
-    // -------------------------------------------------------------------------
-    // Test cases 5 & 6: Back-to-back operations
-    // -------------------------------------------------------------------------
     task test_back_to_back;
         integer bi, bj;
         begin
@@ -278,13 +229,9 @@ module tb_systolic_array;
         end
     endtask
 
-    // -------------------------------------------------------------------------
-    // Test case 7: Reset during operation — DUT must recover cleanly
-    // -------------------------------------------------------------------------
     task test_reset_during_operation;
         integer ri2, rj2, n;
         begin
-            // Set up a valid matrix pair
             for (ri2 = 0; ri2 < 4; ri2 = ri2 + 1)
                 for (rj2 = 0; rj2 < 4; rj2 = rj2 + 1) begin
                     A[ri2][rj2] = ri2 + 1;
@@ -292,16 +239,13 @@ module tb_systolic_array;
                 end
             pack_matrices;
 
-            // Start operation
             @(negedge clk); start = 1;
             @(posedge clk); @(negedge clk); start = 0;
 
-            // Wait a few cycles into the operation, then apply reset
             repeat(4) @(posedge clk);
             @(negedge clk); rst_n = 0;
             @(posedge clk);
 
-            // Verify busy and done go low during reset
             #1;
             if (busy !== 0 || done !== 0) begin
                 $display("FAIL test %0d: busy=%b done=%b should be 0 during reset",
@@ -310,10 +254,8 @@ module tb_systolic_array;
             end
 
             @(negedge clk); rst_n = 1;
-            // Wait for DUT to stabilise out of reset
             repeat(2) @(posedge clk);
 
-            // Now run a clean operation and check correctness
             compute_expected;
             issue_start;
             wait_done;
@@ -325,37 +267,30 @@ module tb_systolic_array;
         end
     endtask
 
-    // -------------------------------------------------------------------------
-    // Test case 8: Result stability — result stays stable after done until next start
-    // -------------------------------------------------------------------------
     task test_result_stability;
         integer si2, sj2, n;
         reg [511:0] captured;
         integer got, exp_val;
         begin
-            // Simple known matrix
             for (si2 = 0; si2 < 4; si2 = si2 + 1)
                 for (sj2 = 0; sj2 < 4; sj2 = sj2 + 1) begin
                     A[si2][sj2] = si2 + 1;
-                    B[si2][sj2] = (si2 == sj2) ? 1 : 0;   // B = identity
+                    B[si2][sj2] = (si2 == sj2) ? 1 : 0;
                 end
             compute_expected;
             pack_matrices;
             issue_start;
             wait_done;
 
-            // Capture result right at done
             @(negedge clk);
             captured = result;
 
-            // Wait 10 extra cycles — result must not change
             repeat(10) @(posedge clk);
             #1;
             if (result !== captured) begin
                 $display("FAIL test %0d: result changed after done without new start", test_num);
                 errors = errors + 1;
             end else begin
-                // Also verify values are correct
                 for (si2 = 0; si2 < 4; si2 = si2 + 1)
                     for (sj2 = 0; sj2 < 4; sj2 = sj2 + 1) begin
                         got     = $signed(result[32*(4*si2+sj2) +: 32]);
@@ -374,9 +309,6 @@ module tb_systolic_array;
         end
     endtask
 
-    // -------------------------------------------------------------------------
-    // Reset sequence and main test driver
-    // -------------------------------------------------------------------------
     initial begin
         rst_n = 0;
         @(negedge clk);
@@ -395,14 +327,14 @@ module tb_systolic_array;
 
     task run_all_tests;
         begin
-            test_identity_times_matrix;   // test 0
-            test_zero_matrices;           // test 1
-            test_known_positive;          // test 2
-            test_signed_values;           // test 3
-            test_mixed_signs;             // test 4
-            test_back_to_back;            // tests 5 & 6
-            test_reset_during_operation;  // test 7
-            test_result_stability;        // test 8
+            test_identity_times_matrix;
+            test_zero_matrices;
+            test_known_positive;
+            test_signed_values;
+            test_mixed_signs;
+            test_back_to_back;
+            test_reset_during_operation;
+            test_result_stability;
         end
     endtask
 
