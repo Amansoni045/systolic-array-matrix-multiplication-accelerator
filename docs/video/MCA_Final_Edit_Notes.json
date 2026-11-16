@@ -1,0 +1,162 @@
+{
+  "duration_seconds": 294.5,
+  "script_wording": "unchanged existing captions",
+  "audio_processing": "leading/trailing silence trims, mild noise reduction, -16 LUFS loudness normalization; no speed or pitch changes",
+  "clips": [
+    {
+      "stem": "Aman",
+      "file": "/tmp/mca_voice_build/Aman_normalized.wav",
+      "start": 1.2,
+      "end": 86.10000000000001,
+      "speaker": "Aman Soni",
+      "trim_start": 3.55,
+      "trim_end": 88.45
+    },
+    {
+      "stem": "Mayank_Array",
+      "file": "/tmp/mca_voice_build/Mayank_Array_normalized.wav",
+      "start": 86.7,
+      "end": 154.85,
+      "speaker": "Mayank Sharma",
+      "trim_start": 0.85,
+      "trim_end": 69.0
+    },
+    {
+      "stem": "Ankit",
+      "file": "/tmp/mca_voice_build/Ankit_normalized.wav",
+      "start": 155.45,
+      "end": 268.15,
+      "speaker": "Ankit Kumar Pandey",
+      "trim_start": 0,
+      "trim_end": 112.7
+    },
+    {
+      "stem": "Mayank_Close",
+      "file": "/tmp/mca_voice_build/Mayank_Close_normalized.wav",
+      "start": 268.75,
+      "end": 292.70000000000005,
+      "speaker": "Mayank Sharma",
+      "trim_start": 2.15,
+      "trim_end": 26.1
+    }
+  ],
+  "caption_count": 57,
+  "scenes": [
+    {
+      "start": 0,
+      "type": "title"
+    },
+    {
+      "start": 11.7,
+      "type": "team"
+    },
+    {
+      "start": 22.22,
+      "type": "concept"
+    },
+    {
+      "start": 37.03,
+      "type": "pe_intro"
+    },
+    {
+      "start": 43.59,
+      "type": "mac"
+    },
+    {
+      "start": 50.31,
+      "type": "sum_graph"
+    },
+    {
+      "start": 60.17,
+      "type": "datapath"
+    },
+    {
+      "start": 67.03,
+      "type": "valid"
+    },
+    {
+      "start": 76.29,
+      "type": "pe_tests"
+    },
+    {
+      "start": 81.64,
+      "type": "pe_waveform"
+    },
+    {
+      "start": 86.93,
+      "type": "grid"
+    },
+    {
+      "start": 93.95,
+      "type": "flow"
+    },
+    {
+      "start": 110.52,
+      "type": "reuse"
+    },
+    {
+      "start": 123.65,
+      "type": "skew"
+    },
+    {
+      "start": 141.81,
+      "type": "scoreboard"
+    },
+    {
+      "start": 155.45,
+      "type": "integration"
+    },
+    {
+      "start": 161.23,
+      "type": "fsm"
+    },
+    {
+      "start": 177.11,
+      "type": "handshake"
+    },
+    {
+      "start": 187.89,
+      "type": "timing_waveform"
+    },
+    {
+      "start": 193.11,
+      "type": "golden"
+    },
+    {
+      "start": 204.55,
+      "type": "testbench"
+    },
+    {
+      "start": 215.91,
+      "type": "results"
+    },
+    {
+      "start": 233.2,
+      "type": "system_tests"
+    },
+    {
+      "start": 243.86,
+      "type": "top_waveform"
+    },
+    {
+      "start": 251.78,
+      "type": "top_zoom"
+    },
+    {
+      "start": 258.32,
+      "type": "metrics"
+    },
+    {
+      "start": 269.0,
+      "type": "finish"
+    },
+    {
+      "start": 277.02,
+      "type": "roadmap"
+    },
+    {
+      "start": 289.04,
+      "type": "end"
+    }
+  ]
+}

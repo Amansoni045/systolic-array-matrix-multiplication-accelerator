@@ -1,0 +1,499 @@
+{
+  "duration": 294.5,
+  "cues": [
+    {
+      "start": 1.43,
+      "end": 6.83,
+      "speaker": "Aman Soni",
+      "text": "How does a hardware accelerator turn two matrices into sixteen correct answers?",
+      "source_start": 3.7799999999999963,
+      "source_end": 9.18
+    },
+    {
+      "start": 7.63,
+      "end": 11.7,
+      "speaker": "Aman Soni",
+      "text": "Let us follow one answer: eighty.",
+      "source_start": 9.979999999999999,
+      "source_end": 14.12
+    },
+    {
+      "start": 11.7,
+      "end": 15.51,
+      "speaker": "Aman Soni",
+      "text": "We are Aman Soni, Mayank Sharma, and Ankit Kumar Pandey.",
+      "source_start": 13.979999999999999,
+      "source_end": 17.86
+    },
+    {
+      "start": 15.73,
+      "end": 22.22,
+      "speaker": "Aman Soni",
+      "text": "Our project is a four-by-four systolic array matrix multiplication accelerator in Verilog.",
+      "source_start": 18.080000000000002,
+      "source_end": 24.639999999999997
+    },
+    {
+      "start": 22.22,
+      "end": 25.35,
+      "speaker": "Aman Soni",
+      "text": "Matrix multiplication is a core operation in AI.",
+      "source_start": 24.5,
+      "source_end": 27.7
+    },
+    {
+      "start": 26.13,
+      "end": 31.11,
+      "speaker": "Aman Soni",
+      "text": "Our idea is to reuse operands as they move through sixteen processing elements,",
+      "source_start": 28.48,
+      "source_end": 33.46
+    },
+    {
+      "start": 32.11,
+      "end": 35.05,
+      "speaker": "Aman Soni",
+      "text": "with several elements computing in parallel.",
+      "source_start": 34.46,
+      "source_end": 37.4
+    },
+    {
+      "start": 37.03,
+      "end": 43.07,
+      "speaker": "Aman Soni",
+      "text": "I am Aman, and I designed the processing element, our basic multiply-accumulate unit.",
+      "source_start": 39.379999999999995,
+      "source_end": 45.42
+    },
+    {
+      "start": 43.59,
+      "end": 48.81,
+      "speaker": "Aman Soni",
+      "text": "For our chosen output, the first row of A meets the first column of B.",
+      "source_start": 45.94,
+      "source_end": 51.16
+    },
+    {
+      "start": 50.31,
+      "end": 57.09,
+      "speaker": "Aman Soni",
+      "text": "The calculation is one times sixteen, plus two times twelve, plus three times eight, plus four times four:",
+      "source_start": 52.66,
+      "source_end": 59.44
+    },
+    {
+      "start": 58.03,
+      "end": 58.89,
+      "speaker": "Aman Soni",
+      "text": "eighty.",
+      "source_start": 60.379999999999995,
+      "source_end": 61.239999999999995
+    },
+    {
+      "start": 60.17,
+      "end": 66.35,
+      "speaker": "Aman Soni",
+      "text": "Each element multiplies signed eight-bit inputs and adds the product to a thirty-two-bit accumulator.",
+      "source_start": 62.519999999999996,
+      "source_end": 68.7
+    },
+    {
+      "start": 67.03,
+      "end": 69.41,
+      "speaker": "Aman Soni",
+      "text": "It updates only when both operands are valid.",
+      "source_start": 69.38,
+      "source_end": 71.76
+    },
+    {
+      "start": 70.57,
+      "end": 75.93,
+      "speaker": "Aman Soni",
+      "text": "I also implemented reset, accumulator clear, and registered data forwarding.",
+      "source_start": 72.92,
+      "source_end": 78.28
+    },
+    {
+      "start": 76.29,
+      "end": 81.64,
+      "speaker": "Aman Soni",
+      "text": "The unit testbench checks ten cases, including negative arithmetic and invalid inputs.",
+      "source_start": 78.64,
+      "source_end": 84.06
+    },
+    {
+      "start": 81.64,
+      "end": 85.81,
+      "speaker": "Aman Soni",
+      "text": "Mayank will show how these elements work together.",
+      "source_start": 83.92,
+      "source_end": 88.16
+    },
+    {
+      "start": 86.93,
+      "end": 93.59,
+      "speaker": "Mayank Sharma",
+      "text": "I am Mayank, and I connected the sixteen processing elements into a four-by-four array.",
+      "source_start": 1.0800000000000003,
+      "source_end": 7.74
+    },
+    {
+      "start": 93.95,
+      "end": 99.27,
+      "speaker": "Mayank Sharma",
+      "text": "A values travel to the right, while B values travel down.",
+      "source_start": 8.1,
+      "source_end": 13.42
+    },
+    {
+      "start": 100.41,
+      "end": 106.99,
+      "speaker": "Mayank Sharma",
+      "text": "Each element keeps its own partial sum, so each eventually produces one output matrix entry.",
+      "source_start": 14.559999999999999,
+      "source_end": 21.139999999999997
+    },
+    {
+      "start": 107.87,
+      "end": 110.52,
+      "speaker": "Mayank Sharma",
+      "text": "This is output-stationary dataflow.",
+      "source_start": 22.02,
+      "source_end": 24.74
+    },
+    {
+      "start": 110.52,
+      "end": 112.8,
+      "speaker": "Mayank Sharma",
+      "text": "Our top-left element builds eighty,",
+      "source_start": 24.6,
+      "source_end": 27.02
+    },
+    {
+      "start": 112.8,
+      "end": 118.25,
+      "speaker": "Mayank Sharma",
+      "text": "while other elements calculate their outputs as the data wave reaches them.",
+      "source_start": 26.880000000000003,
+      "source_end": 32.4
+    },
+    {
+      "start": 119.99,
+      "end": 123.19,
+      "speaker": "Mayank Sharma",
+      "text": "Forwarding lets neighbouring elements reuse operands.",
+      "source_start": 34.14,
+      "source_end": 37.339999999999996
+    },
+    {
+      "start": 123.65,
+      "end": 128.25,
+      "speaker": "Mayank Sharma",
+      "text": "The important challenge is timing: matching operands must reach each element together.",
+      "source_start": 37.8,
+      "source_end": 42.4
+    },
+    {
+      "start": 129.01,
+      "end": 136.81,
+      "speaker": "Mayank Sharma",
+      "text": "I added internal input delays of zero, one, two, and three cycles across the rows and columns.",
+      "source_start": 43.16,
+      "source_end": 50.96
+    },
+    {
+      "start": 138.39,
+      "end": 141.39,
+      "speaker": "Mayank Sharma",
+      "text": "Valid signals follow the same delays.",
+      "source_start": 52.54,
+      "source_end": 55.54
+    },
+    {
+      "start": 141.81,
+      "end": 147.32,
+      "speaker": "Mayank Sharma",
+      "text": "I also built a cycle-by-cycle scoreboard covering one hundred and five matrices, input gaps,",
+      "source_start": 55.96,
+      "source_end": 61.54
+    },
+    {
+      "start": 147.32,
+      "end": 150.39,
+      "speaker": "Mayank Sharma",
+      "text": "and reset recovery.",
+      "source_start": 61.4,
+      "source_end": 64.53999999999999
+    },
+    {
+      "start": 150.93,
+      "end": 154.53,
+      "speaker": "Mayank Sharma",
+      "text": "Ankit will show how the controller runs the complete operation.",
+      "source_start": 65.08,
+      "source_end": 68.67999999999999
+    },
+    {
+      "start": 155.45,
+      "end": 156.35,
+      "speaker": "Ankit Kumar Pandey",
+      "text": "I am Ankit Kumar Pandey.",
+      "source_start": 0,
+      "source_end": 0.8999999999999999
+    },
+    {
+      "start": 156.45,
+      "end": 160.73,
+      "speaker": "Ankit Kumar Pandey",
+      "text": "I implemented the controller, top-level integration, and system verification.",
+      "source_start": 1.0,
+      "source_end": 5.28
+    },
+    {
+      "start": 161.23,
+      "end": 164.07,
+      "speaker": "Ankit Kumar Pandey",
+      "text": "An external start pulse begins the operation.",
+      "source_start": 5.78,
+      "source_end": 8.62
+    },
+    {
+      "start": 164.15,
+      "end": 170.9,
+      "speaker": "Ankit Kumar Pandey",
+      "text": "The controller clears previous sums, feeds four sets of matrix operands,",
+      "source_start": 8.7,
+      "source_end": 15.52
+    },
+    {
+      "start": 170.9,
+      "end": 176.41,
+      "speaker": "Ankit Kumar Pandey",
+      "text": "and allows eight drain cycles for pipeline propagation and result capture.",
+      "source_start": 15.379999999999999,
+      "source_end": 20.959999999999997
+    },
+    {
+      "start": 177.11,
+      "end": 180.1,
+      "speaker": "Ankit Kumar Pandey",
+      "text": "Busy indicates that computation is active.",
+      "source_start": 21.66,
+      "source_end": 24.72
+    },
+    {
+      "start": 180.1,
+      "end": 187.65,
+      "speaker": "Ankit Kumar Pandey",
+      "text": "When the output is captured, done pulses for one cycle, and the result remains available.",
+      "source_start": 24.580000000000002,
+      "source_end": 32.199999999999996
+    },
+    {
+      "start": 187.89,
+      "end": 192.91,
+      "speaker": "Ankit Kumar Pandey",
+      "text": "The documented controller sequence spans fourteen clock cycles.",
+      "source_start": 32.44,
+      "source_end": 37.46
+    },
+    {
+      "start": 193.11,
+      "end": 197.89,
+      "speaker": "Ankit Kumar Pandey",
+      "text": "I also created a Python reference model with forty directed and random vectors.",
+      "source_start": 37.66,
+      "source_end": 42.44
+    },
+    {
+      "start": 198.33,
+      "end": 203.91,
+      "speaker": "Ankit Kumar Pandey",
+      "text": "Those are software reference checks; the RTL is checked by the Verilog testbenches.",
+      "source_start": 42.879999999999995,
+      "source_end": 48.46
+    },
+    {
+      "start": 204.55,
+      "end": 208.41,
+      "speaker": "Ankit Kumar Pandey",
+      "text": "Here is the complete system testbench.",
+      "source_start": 49.099999999999994,
+      "source_end": 52.96
+    },
+    {
+      "start": 208.45,
+      "end": 215.43,
+      "speaker": "Ankit Kumar Pandey",
+      "text": "It compares all sixteen outputs against independently calculated expected values.",
+      "source_start": 53.0,
+      "source_end": 59.98
+    },
+    {
+      "start": 215.91,
+      "end": 219.42,
+      "speaker": "Ankit Kumar Pandey",
+      "text": "Test two uses the matrices we started with.",
+      "source_start": 60.46,
+      "source_end": 64.04
+    },
+    {
+      "start": 219.42,
+      "end": 222.73,
+      "speaker": "Ankit Kumar Pandey",
+      "text": "Its first expected output is eighty.",
+      "source_start": 63.9,
+      "source_end": 67.28
+    },
+    {
+      "start": 223.29,
+      "end": 233.2,
+      "speaker": "Ankit Kumar Pandey",
+      "text": "The documented run shows this test passing, followed by all nine system tests passing.",
+      "source_start": 67.84,
+      "source_end": 77.82
+    },
+    {
+      "start": 233.2,
+      "end": 239.49,
+      "speaker": "Ankit Kumar Pandey",
+      "text": "The tests include identity and zero matrices, signed extremes, consecutive operations,",
+      "source_start": 77.67999999999999,
+      "source_end": 84.03999999999999
+    },
+    {
+      "start": 240.11,
+      "end": 243.86,
+      "speaker": "Ankit Kumar Pandey",
+      "text": "reset during computation, and output stability.",
+      "source_start": 84.66,
+      "source_end": 88.48
+    },
+    {
+      "start": 243.86,
+      "end": 251.78,
+      "speaker": "Ankit Kumar Pandey",
+      "text": "In the report waveform, start begins the transaction, busy stays high during processing,",
+      "source_start": 88.34,
+      "source_end": 96.39999999999999
+    },
+    {
+      "start": 251.78,
+      "end": 254.09,
+      "speaker": "Ankit Kumar Pandey",
+      "text": "and done marks the captured result.",
+      "source_start": 96.25999999999999,
+      "source_end": 98.64
+    },
+    {
+      "start": 254.39,
+      "end": 258.32,
+      "speaker": "Ankit Kumar Pandey",
+      "text": "The first result word is eighty, completing our example.",
+      "source_start": 98.94,
+      "source_end": 102.94
+    },
+    {
+      "start": 258.32,
+      "end": 266.79,
+      "speaker": "Ankit Kumar Pandey",
+      "text": "The recorded PE and array runs also show ten unit tests and one hundred and five matrix cases passing.",
+      "source_start": 102.8,
+      "source_end": 111.34
+    },
+    {
+      "start": 269.0,
+      "end": 273.28,
+      "speaker": "Mayank Sharma",
+      "text": "We followed eighty from four products to a checked matrix output.",
+      "source_start": 2.4000000000000004,
+      "source_end": 6.68
+    },
+    {
+      "start": 273.92,
+      "end": 276.48,
+      "speaker": "Mayank Sharma",
+      "text": "The same structure computes all sixteen results.",
+      "source_start": 7.32,
+      "source_end": 9.88
+    },
+    {
+      "start": 277.02,
+      "end": 281.84,
+      "speaker": "Mayank Sharma",
+      "text": "Our Phase One deliverable is a Verilog RTL prototype with simulation verification.",
+      "source_start": 10.42,
+      "source_end": 15.24
+    },
+    {
+      "start": 282.04,
+      "end": 284.97,
+      "speaker": "Mayank Sharma",
+      "text": "Next, we plan memory integration, larger matrices through tiling,",
+      "source_start": 15.44,
+      "source_end": 18.439999999999998
+    },
+    {
+      "start": 284.97,
+      "end": 288.92,
+      "speaker": "Mayank Sharma",
+      "text": "and FPGA deployment with resource and power measurements.",
+      "source_start": 18.3,
+      "source_end": 22.319999999999997
+    },
+    {
+      "start": 289.04,
+      "end": 291.28,
+      "speaker": "Mayank Sharma",
+      "text": "Our code, tests, and report are on GitHub.",
+      "source_start": 22.44,
+      "source_end": 24.68
+    },
+    {
+      "start": 291.92,
+      "end": 292.44,
+      "speaker": "Mayank Sharma",
+      "text": "Thank you.",
+      "source_start": 25.32,
+      "source_end": 25.84
+    }
+  ],
+  "clips": [
+    {
+      "stem": "Aman",
+      "file": "/tmp/mca_voice_build/Aman_normalized.wav",
+      "start": 1.2,
+      "end": 86.10000000000001,
+      "speaker": "Aman Soni",
+      "trim_start": 3.55,
+      "trim_end": 88.45
+    },
+    {
+      "stem": "Mayank_Array",
+      "file": "/tmp/mca_voice_build/Mayank_Array_normalized.wav",
+      "start": 86.7,
+      "end": 154.85,
+      "speaker": "Mayank Sharma",
+      "trim_start": 0.85,
+      "trim_end": 69.0
+    },
+    {
+      "stem": "Ankit",
+      "file": "/tmp/mca_voice_build/Ankit_normalized.wav",
+      "start": 155.45,
+      "end": 268.15,
+      "speaker": "Ankit Kumar Pandey",
+      "trim_start": 0,
+      "trim_end": 112.7
+    },
+    {
+      "stem": "Mayank_Close",
+      "file": "/tmp/mca_voice_build/Mayank_Close_normalized.wav",
+      "start": 268.75,
+      "end": 292.70000000000005,
+      "speaker": "Mayank Sharma",
+      "trim_start": 2.15,
+      "trim_end": 26.1
+    }
+  ]
+}
