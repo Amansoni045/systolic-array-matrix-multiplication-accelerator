@@ -1,227 +1,227 @@
 1
-00:00:00,350 --> 00:00:06,344
+00:00:01,430 --> 00:00:06,830
 How does a hardware accelerator turn two matrices into sixteen correct answers?
 
 2
-00:00:06,344 --> 00:00:09,529
+00:00:07,630 --> 00:00:11,700
 Let us follow one answer: eighty.
 
 3
-00:00:09,529 --> 00:00:14,587
+00:00:11,700 --> 00:00:15,510
 We are Aman Soni, Mayank Sharma, and Ankit Kumar Pandey.
 
 4
-00:00:14,587 --> 00:00:20,581
+00:00:15,730 --> 00:00:22,220
 Our project is a four-by-four systolic array matrix multiplication accelerator in Verilog.
 
 5
-00:00:20,581 --> 00:00:24,703
+00:00:22,220 --> 00:00:25,350
 Matrix multiplication is a core operation in AI.
 
 6
-00:00:24,703 --> 00:00:31,165
+00:00:26,130 --> 00:00:31,110
 Our idea is to reuse operands as they move through sixteen processing elements,
 
 7
-00:00:31,165 --> 00:00:34,350
+00:00:32,110 --> 00:00:35,050
 with several elements computing in parallel.
 
 8
-00:00:35,350 --> 00:00:41,717
+00:00:37,030 --> 00:00:43,070
 I am Aman, and I designed the processing element, our basic multiply-accumulate unit.
 
 9
-00:00:41,717 --> 00:00:49,007
+00:00:43,590 --> 00:00:48,810
 For our chosen output, the first row of A meets the first column of B.
 
 10
-00:00:49,007 --> 00:00:57,681
+00:00:50,310 --> 00:00:57,090
 The calculation is one times sixteen, plus two times twelve, plus three times eight, plus four times four:
 
 11
-00:00:57,681 --> 00:00:58,512
+00:00:58,030 --> 00:00:58,890
 eighty.
 
 12
-00:00:58,512 --> 00:01:05,341
+00:01:00,170 --> 00:01:06,350
 Each element multiplies signed eight-bit inputs and adds the product to a thirty-two-bit accumulator.
 
 13
-00:01:05,341 --> 00:01:09,401
+00:01:07,030 --> 00:01:09,410
 It updates only when both operands are valid.
 
 14
-00:01:09,401 --> 00:01:14,384
+00:01:10,570 --> 00:01:15,930
 I also implemented reset, accumulator clear, and registered data forwarding.
 
 15
-00:01:14,384 --> 00:01:20,290
+00:01:16,290 --> 00:01:21,640
 The unit testbench checks ten cases, including negative arithmetic and invalid inputs.
 
 16
-00:01:20,290 --> 00:01:24,350
+00:01:21,640 --> 00:01:25,810
 Mayank will show how these elements work together.
 
 17
-00:01:25,350 --> 00:01:32,676
+00:01:26,930 --> 00:01:33,590
 I am Mayank, and I connected the sixteen processing elements into a four-by-four array.
 
 18
-00:01:32,676 --> 00:01:38,516
+00:01:33,950 --> 00:01:39,270
 A values travel to the right, while B values travel down.
 
 19
-00:01:38,516 --> 00:01:46,337
+00:01:40,410 --> 00:01:46,990
 Each element keeps its own partial sum, so each eventually produces one output matrix entry.
 
 20
-00:01:46,337 --> 00:01:48,713
+00:01:47,870 --> 00:01:50,520
 This is output-stationary dataflow.
 
 21
-00:01:48,713 --> 00:01:51,584
+00:01:50,520 --> 00:01:52,800
 Our top-left element builds eighty,
 
 22
-00:01:51,584 --> 00:01:57,920
+00:01:52,800 --> 00:01:58,250
 while other elements calculate their outputs as the data wave reaches them.
 
 23
-00:01:57,920 --> 00:02:01,285
+00:01:59,990 --> 00:02:03,190
 Forwarding lets neighbouring elements reuse operands.
 
 24
-00:02:01,285 --> 00:02:07,621
+00:02:03,650 --> 00:02:08,250
 The important challenge is timing: matching operands must reach each element together.
 
 25
-00:02:07,621 --> 00:02:16,432
+00:02:09,010 --> 00:02:16,810
 I added internal input delays of zero, one, two, and three cycles across the rows and columns.
 
 26
-00:02:16,432 --> 00:02:19,798
+00:02:18,390 --> 00:02:21,390
 Valid signals follow the same delays.
 
 27
-00:02:19,798 --> 00:02:27,123
+00:02:21,810 --> 00:02:27,320
 I also built a cycle-by-cycle scoreboard covering one hundred and five matrices, input gaps,
 
 28
-00:02:27,123 --> 00:02:29,004
+00:02:27,320 --> 00:02:30,390
 and reset recovery.
 
 29
-00:02:29,004 --> 00:02:34,350
+00:02:30,930 --> 00:02:34,530
 Ankit will show how the controller runs the complete operation.
 
 30
-00:02:35,350 --> 00:02:37,758
+00:02:35,450 --> 00:02:36,350
 I am Ankit Kumar Pandey.
 
 31
-00:02:37,758 --> 00:02:41,825
+00:02:36,450 --> 00:02:40,730
 I implemented the controller, top-level integration, and system verification.
 
 32
-00:02:41,825 --> 00:02:45,063
+00:02:41,230 --> 00:02:44,070
 An external start pulse begins the operation.
 
 33
-00:02:45,063 --> 00:02:49,961
+00:02:44,150 --> 00:02:50,900
 The controller clears previous sums, feeds four sets of matrix operands,
 
 34
-00:02:49,961 --> 00:02:54,859
+00:02:50,900 --> 00:02:56,410
 and allows eight drain cycles for pipeline propagation and result capture.
 
 35
-00:02:54,859 --> 00:02:57,682
+00:02:57,110 --> 00:03:00,100
 Busy indicates that computation is active.
 
 36
-00:02:57,682 --> 00:03:04,241
+00:03:00,100 --> 00:03:07,650
 When the output is captured, done pulses for one cycle, and the result remains available.
 
 37
-00:03:04,241 --> 00:03:07,893
+00:03:07,890 --> 00:03:12,910
 The documented controller sequence spans fourteen clock cycles.
 
 38
-00:03:07,893 --> 00:03:13,622
+00:03:13,110 --> 00:03:17,890
 I also created a Python reference model with forty directed and random vectors.
 
 39
-00:03:13,622 --> 00:03:19,350
+00:03:18,330 --> 00:03:23,910
 Those are software reference checks; the RTL is checked by the Verilog testbenches.
 
 40
-00:03:20,350 --> 00:03:23,494
+00:03:24,550 --> 00:03:28,410
 Here is the complete system testbench.
 
 41
-00:03:23,494 --> 00:03:28,487
+00:03:28,450 --> 00:03:35,430
 It compares all sixteen outputs against independently calculated expected values.
 
 42
-00:03:28,487 --> 00:03:32,555
+00:03:35,910 --> 00:03:39,420
 Test two uses the matrices we started with.
 
 43
-00:03:32,555 --> 00:03:35,699
+00:03:39,420 --> 00:03:42,730
 Its first expected output is eighty.
 
 44
-00:03:35,699 --> 00:03:42,542
+00:03:43,290 --> 00:03:53,200
 The documented run shows this test passing, followed by all nine system tests passing.
 
 45
-00:03:42,542 --> 00:03:47,997
+00:03:53,200 --> 00:03:59,490
 The tests include identity and zero matrices, signed extremes, consecutive operations,
 
 46
-00:03:47,997 --> 00:03:51,141
+00:04:00,110 --> 00:04:03,860
 reset during computation, and output stability.
 
 47
-00:03:51,141 --> 00:03:57,521
+00:04:03,860 --> 00:04:11,780
 In the report waveform, start begins the transaction, busy stays high during processing,
 
 48
-00:03:57,521 --> 00:04:00,665
+00:04:11,780 --> 00:04:14,090
 and done marks the captured result.
 
 49
-00:04:00,665 --> 00:04:05,196
+00:04:14,390 --> 00:04:18,320
 The first result word is eighty, completing our example.
 
 50
-00:04:05,196 --> 00:04:14,350
+00:04:18,320 --> 00:04:26,790
 The recorded PE and array runs also show ten unit tests and one hundred and five matrix cases passing.
 
 51
-00:04:15,350 --> 00:04:19,874
+00:04:29,000 --> 00:04:33,280
 We followed eighty from four products to a checked matrix output.
 
 52
-00:04:19,874 --> 00:04:22,864
+00:04:33,920 --> 00:04:36,480
 The same structure computes all sixteen results.
 
 53
-00:04:22,864 --> 00:04:27,772
+00:04:37,020 --> 00:04:41,840
 Our Phase One deliverable is a Verilog RTL prototype with simulation verification.
 
 54
-00:04:27,772 --> 00:04:31,529
+00:04:42,040 --> 00:04:44,970
 Next, we plan memory integration, larger matrices through tiling,
 
 55
-00:04:31,529 --> 00:04:34,903
+00:04:44,970 --> 00:04:48,920
 and FPGA deployment with resource and power measurements.
 
 56
-00:04:34,903 --> 00:04:38,277
+00:04:49,040 --> 00:04:51,280
 Our code, tests, and report are on GitHub.
 
 57
-00:04:38,277 --> 00:04:39,350
+00:04:51,920 --> 00:04:52,440
 Thank you.

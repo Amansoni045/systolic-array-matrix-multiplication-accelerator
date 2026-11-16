@@ -1,7 +1,7 @@
 # Systolic Array Matrix Multiplication Accelerator (4×4 INT8 / INT32)
 
 [![Verilog HDL](https://img.shields.io/badge/Language-Verilog%20HDL-blue.svg)](rtl/)
-[![Simulator](https://img.shields.io/badge/Simulator-Icarus%20Verilog%2013.0-orange.svg)](simulation/)
+[![Simulator](https://img.shields.io/badge/Simulator-Icarus%20Verilog%2013.0-orange.svg)](#how-to-build-and-run)
 [![Verification](https://img.shields.io/badge/Verification-100%25%20Passed-brightgreen.svg)](testbench/)
 [![IEEE Report](https://img.shields.io/badge/Report-IEEE%20Format-red.svg)](report/IEEE_Project_Report_Phase_1.pdf)
 
@@ -14,8 +14,10 @@
 | **IEEE Project Report (PDF)** | Formal 4-page IEEE conference format report with architectural block diagrams, verification tables, waveforms, and references | [**IEEE_Project_Report_Phase_1.pdf**](report/IEEE_Project_Report_Phase_1.pdf) |
 | **Project Report (Markdown)** | Full GitHub-rendered markdown edition of the IEEE Project Report | [**REPORT.md**](report/REPORT.md) |
 | **LaTeX Report Source** | IEEEtran conference format LaTeX source file | [**IEEE_Project_Report_Phase_1.tex**](report/IEEE_Project_Report_Phase_1.tex) |
-| **Prototype Demo Video** | 5-minute video demonstration covering project idea, 3 members, block diagrams, code walkthrough, and live simulation | [**Prototype Video Link (YouTube / Drive)**](https://youtu.be/placeholder-demo-video) |
-| **Video Script & Guide** | Second-by-second presentation plan and word-for-word spoken script for the team | [**PROTOTYPE_VIDEO_GUIDE.md**](docs/PROTOTYPE_VIDEO_GUIDE.md) |
+| **Final Prototype Video** | 4:54.5 presentation in 1080p with all three members, recorded voiceovers, captions, an accumulation graph and report waveform close-ups | [**Watch / download final MP4**](docs/video/MCA_Final_With_Team_Voiceovers_1080p.mp4) |
+| **Final Captions** | English subtitles synchronized to the recorded team narration | [**MCA_Final_Captions.srt**](docs/video/MCA_Final_Captions.srt) |
+| **Video Script & Guide** | Project story, each member's dialogue and recording directions | [**TEAM_VIDEO_SCRIPT.md**](docs/TEAM_VIDEO_SCRIPT.md) |
+| **Video Details** | Final presentation format, duration and team contributions | [**Video README**](docs/video/README.md) |
 | **Submission Form** | Official submission portal (Deadline: Nov 16, 2026, 11:59 PM) | [Google Form Submission](https://docs.google.com/forms/d/e/1FAIpQLSc6Cx8OrOQLGj_X2ZMkyG5jc8mokq36mGRq2x8jGRNV1sbegA/viewform) |
 
 ---
@@ -188,7 +190,7 @@ All golden model checks PASSED.
 ### Step-by-Step Commands
 ```bash
 # 1. Clone the repository
-git clone https://github.com/Amansoni045/systolic-array-matrix-multiplication-accelerator.git
+git clone https://github.com/MAYANKSHARMA01010/systolic-array-matrix-multiplication-accelerator.git
 cd systolic-array-matrix-multiplication-accelerator
 
 # 2. Compile and run Processing Element unit test
