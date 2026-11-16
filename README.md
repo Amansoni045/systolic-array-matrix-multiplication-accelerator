@@ -17,7 +17,7 @@
 | **Final Prototype Video** | 4:54.5 presentation in 1080p with all three members, recorded voiceovers, captions, an accumulation graph and report waveform close-ups | [**Watch / download final MP4**](docs/video/MCA_Final_With_Team_Voiceovers_1080p.mp4) |
 | **Final Captions** | English subtitles synchronized to the recorded team narration | [**MCA_Final_Captions.srt**](docs/video/MCA_Final_Captions.srt) |
 | **Video Script & Guide** | Project story, each member's dialogue and recording directions | [**TEAM_VIDEO_SCRIPT.md**](docs/TEAM_VIDEO_SCRIPT.md) |
-| **Video Assets & Rebuild Guide** | Final video details, actual speaker timings, source files and rebuild instructions | [**Video README**](docs/video/README.md) |
+| **Video Details** | Final presentation format, duration and team contributions | [**Video README**](docs/video/README.md) |
 | **Submission Form** | Official submission portal (Deadline: Nov 16, 2026, 11:59 PM) | [Google Form Submission](https://docs.google.com/forms/d/e/1FAIpQLSc6Cx8OrOQLGj_X2ZMkyG5jc8mokq36mGRq2x8jGRNV1sbegA/viewform) |
 
 ---
