@@ -4,13 +4,15 @@ import argparse
 import bisect
 import json
 import math
+import os
+import re
 import subprocess
 from pathlib import Path
 from PIL import Image, ImageDraw
 import build_video as v
 
 ROOT=v.ROOT
-TMP=Path('/tmp/mca_voice_build')
+TMP=Path(os.environ.get('MCA_VIDEO_BUILD_DIR',ROOT/'docs/video/.build'))
 SYNC_PATH=ROOT/'docs/video/MCA_Final_Sync.json'
 SYNC=json.loads((SYNC_PATH if SYNC_PATH.exists() else TMP/'sync.json').read_text())
 CUES=SYNC['cues']
@@ -43,6 +45,30 @@ for t,k in SPECS:
  else:_,_,title,sub=ORIGINAL_SCENES[k]
  SCENES.append((t,k,title,sub))
 SSTARTS=[s[0] for s in SCENES]
+
+def prepare_voiceover():
+ """Rebuild audio from the locally retained originals without changing speech."""
+ TMP.mkdir(parents=True,exist_ok=True)
+ clips=SYNC['clips']
+ for clip in clips:
+  source=OUT/clip['source']
+  if not source.is_file():
+   raise FileNotFoundError(f'Missing original recording: {source}. See docs/video/README.md.')
+  target=TMP/(clip['stem']+'_normalized.wav')
+  trim0,trim1=clip['trim_start'],clip['trim_end']
+  pre=f'atrim=start={trim0}:end={trim1},asetpts=PTS-STARTPTS,highpass=f=75,lowpass=f=9500,afftdn=nr=6:nf=-35'
+  result=subprocess.run(['ffmpeg','-hide_banner','-i',str(source),'-af',pre+',loudnorm=I=-16:TP=-1.5:LRA=11:print_format=json','-f','null','-'],capture_output=True,text=True,check=True)
+  measure=json.loads(re.findall(r'\{[^{}]*"input_i"[^{}]*\}',result.stderr,re.S)[-1])
+  loud=f"loudnorm=I=-16:TP=-1.5:LRA=11:measured_I={measure['input_i']}:measured_TP={measure['input_tp']}:measured_LRA={measure['input_lra']}:measured_thresh={measure['input_thresh']}:offset={measure['target_offset']}:linear=true"
+  filt=pre+','+loud+f',afade=t=in:d=0.02,afade=t=out:st={trim1-trim0-.025}:d=0.025'
+  subprocess.run(['ffmpeg','-v','error','-y','-i',str(source),'-af',filt,'-ar','48000','-ac','2',str(target)],check=True)
+  print(f"Prepared recording: {clip['speaker']} / {clip['stem']}",flush=True)
+ cmd=['ffmpeg','-hide_banner','-v','error','-y']
+ for clip in clips:cmd+=['-i',str(TMP/(clip['stem']+'_normalized.wav'))]
+ filters=[f'[{i}:a]adelay={round(clip["start"]*1000)}:all=1[a{i}]' for i,clip in enumerate(clips)]
+ filters.append(''.join(f'[a{i}]' for i in range(len(clips)))+f'amix=inputs={len(clips)}:normalize=0:dropout_transition=0,apad=whole_dur={DURATION}[mix]')
+ cmd+=['-filter_complex',';'.join(filters),'-map','[mix]','-ar','48000','-ac','2','-t',str(DURATION),str(TMP/'final_voiceover.wav')]
+ subprocess.run(cmd,check=True)
 
 def empty(scene):
  im=Image.new('RGB',(1920,1080),v.BG);d=ImageDraw.Draw(im)
@@ -158,12 +184,14 @@ def frame(t,cache):
 
 def main():
  p=argparse.ArgumentParser();p.add_argument('--preview',action='store_true');args=p.parse_args()
+ TMP.mkdir(parents=True,exist_ok=True)
  old=json.loads((OUT/'MCA_Voiceover_Timing.json').read_text())['captions']
  assert [c['text'] for c in CUES]==[c['text'] for c in old],'Caption wording changed'
  cache={}
  if args.preview:
   for t in [54,59,84,133,190,246,253,270,292]:frame(t,cache).save(TMP/f'final_preview_{t:03}.jpg',quality=94)
   print('Previewed new visuals; all 57 caption texts unchanged.');return
+ prepare_voiceover()
  (OUT/'MCA_Final_Captions.srt').write_text('\n\n'.join(f"{i+1}\n{v.stamp(c['start'])} --> {v.stamp(c['end'])}\n{c['text']}" for i,c in enumerate(CUES))+'\n')
  sections=[(0,at(7),'Aman Soni - Introduction'),(at(7),at(16),'Aman Soni - Processing Element'),(at(16),at(29),'Mayank Sharma - Array'),(at(29),at(39),'Ankit Kumar Pandey - Controller'),(at(39),at(50),'Ankit Kumar Pandey - Verification'),(at(50),DURATION,'Mayank Sharma - Conclusion')]
  meta=[';FFMETADATA1','title=MCA Systolic Array Final Team Video','artist=Aman Soni, Mayank Sharma, Ankit Kumar Pandey']
