@@ -6,18 +6,18 @@
 *.bin
 *.hex
 *_sim
-simulation/*_sim
-simulation/*.vvp
+**/simulation/*_sim
+**/simulation/*.vvp
 
 *.vcd
 *.fst
 *.ghw
-simulation/waveforms/*
-!simulation/waveforms/.gitkeep
+**/simulation/waveforms/*
+!**/simulation/waveforms/.gitkeep
 
 *.log
-simulation/results/*
-!simulation/results/.gitkeep
+**/simulation/results/*
+!**/simulation/results/.gitkeep
 
 __pycache__/
 *.py[cod]
@@ -45,18 +45,18 @@ ehthumbs.db
 !.gitkeep
 
 # Keep the final voiced presentation; retain source recordings only locally.
-docs/video/voiceovers/
-docs/video/.build/
-docs/video/*_normalized.wav
-docs/video/final_voiceover.wav
-docs/video/preview_*.jpg
-docs/video/export_*.png
+phase1/video/voiceovers/
+phase1/video/.build/
+phase1/video/*_normalized.wav
+phase1/video/final_voiceover.wav
+phase1/video/preview_*.jpg
+phase1/video/export_*.png
 
 # Superseded presentation exports and generated editing notes.
-docs/video/MCA_Prototype_Captioned_1080p.mp4
-docs/video/MCA_Captions.srt
-docs/video/MCA_Voiceover_Guide.md
-docs/video/MCA_Final_Edit_Notes.json
+phase1/video/MCA_Prototype_Captioned_1080p.mp4
+phase1/video/MCA_Captions.srt
+phase1/video/MCA_Voiceover_Guide.md
+phase1/video/MCA_Final_Edit_Notes.json
 
 # The PDF, LaTeX, Markdown and figures are the maintained report deliverables.
-report/*.html
+**/report/*.html
