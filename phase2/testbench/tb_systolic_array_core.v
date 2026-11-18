@@ -91,6 +91,45 @@ module tb_systolic_array_core;
         end
     endtask
 
+    // Check forwarding as well as sums: invalid masks must travel independently,
+    // including traffic where only one operand is valid and no MAC takes place.
+    genvar gr, gc;
+    generate
+        for (gr = 0; gr < ARRAY_SIZE; gr = gr+1) begin : monitor_rows
+            for (gc = 0; gc < ARRAY_SIZE; gc = gc+1) begin : monitor_cols
+                integer source_slot;
+                reg expected_av, expected_bv;
+                always @(posedge clk) begin
+                    #2; // after tick's scoreboard and DUT nonblocking updates
+                    source_slot = cycle-1-gr-gc;
+                    expected_av = 0;
+                    expected_bv = 0;
+                    if (rst_n && !clear_acc && source_slot >= 0) begin
+                        expected_av = history_av[source_slot][gr];
+                        expected_bv = history_bv[source_slot][gc];
+                    end
+                    if (dut.rows[gr].cols[gc].pe.a_valid_out !== expected_av ||
+                        dut.rows[gr].cols[gc].pe.b_valid_out !== expected_bv)
+                        $fatal(1, "Forwarded valid mismatch at PE(%0d,%0d), edge %0d", gr, gc, cycle-1);
+                    if (expected_av)
+                        if (dut.rows[gr].cols[gc].pe.a_out !== history_a[source_slot][gr])
+                            $fatal(1, "Forwarded A mismatch at PE(%0d,%0d)", gr, gc);
+                    if (expected_bv)
+                        if (dut.rows[gr].cols[gc].pe.b_out !== history_b[source_slot][gc])
+                            $fatal(1, "Forwarded B mismatch at PE(%0d,%0d)", gr, gc);
+                end
+                always @(negedge rst_n) begin
+                    #1;
+                    if (dut.rows[gr].cols[gc].pe.a_out !== 0 ||
+                        dut.rows[gr].cols[gc].pe.b_out !== 0 ||
+                        dut.rows[gr].cols[gc].pe.a_valid_out !== 0 ||
+                        dut.rows[gr].cols[gc].pe.b_valid_out !== 0)
+                        $fatal(1, "Asynchronous forwarding reset failed at PE(%0d,%0d)", gr, gc);
+                end
+            end
+        end
+    endgenerate
+
     task idle_edges;
         input integer count;
         integer edge_index;
@@ -202,6 +241,50 @@ module tb_systolic_array_core;
             stream_matrix(test_id >= 8 && test_id%2 == 0);
         end
         $display("PASS: %0d matrices incl. boundaries, overflow wrapping and bubbles", matrices_checked);
+
+        // A-only and B-only traffic must forward without changing any sum.
+        clear_array;
+        a_in = {ARRAY_SIZE{max_val}}; b_in = {ARRAY_SIZE{min_val}};
+        a_valid_in = {ARRAY_SIZE{1'b1}}; b_valid_in = 0;
+        for (n = 0; n < CORE_EDGES; n = n+1) tick;
+        idle_edges(DRAIN_EDGES);
+        a_valid_in = 0; b_valid_in = {ARRAY_SIZE{1'b1}};
+        for (n = 0; n < CORE_EDGES; n = n+1) tick;
+        idle_edges(DRAIN_EDGES);
+        if (acc_out !== 0) $fatal(1, "One-sided validity caused accumulation");
+        clear_array;
+        for (n = 0; n < 4*ARRAY_SIZE+7; n = n+1) begin
+            for (i = 0; i < ARRAY_SIZE; i = i+1) begin
+                a_in[DATA_WIDTH*i +: DATA_WIDTH] = $random(seed);
+                b_in[DATA_WIDTH*i +: DATA_WIDTH] = $random(seed);
+                a_valid_in[i] = $random(seed);
+                b_valid_in[i] = $random(seed);
+            end
+            tick;
+        end
+        idle_edges(DRAIN_EDGES);
+        $display("PASS: independent masks, every PE's forwarding and valid paths");
+
+        // Interrupt a populated pipeline. Hold clear while all lanes stay valid.
+        a_valid_in = {ARRAY_SIZE{1'b1}}; b_valid_in = {ARRAY_SIZE{1'b1}};
+        repeat (ARRAY_SIZE+1) tick;
+        clear_acc = 1;
+        repeat (3) tick;
+        clear_acc = 0;
+        idle_edges(CORE_EDGES);
+        if (acc_out !== 0) $fatal(1, "Clear leaked cancelled operands");
+        $display("PASS: mid-flight clear, clear priority, multi-edge clear and flush");
+
+        a_valid_in = {ARRAY_SIZE{1'b1}}; b_valid_in = {ARRAY_SIZE{1'b1}};
+        repeat (ARRAY_SIZE+1) tick;
+        #2 rst_n = 0; // deliberately away from the rising edge
+        #1;
+        if (acc_out !== 0) $fatal(1, "Asynchronous accumulator reset failed");
+        tick;
+        rst_n = 1;
+        idle_edges(CORE_EDGES);
+        if (acc_out !== 0) $fatal(1, "Reset leaked cancelled operands");
+        $display("PASS: mid-flight asynchronous reset and pipeline flush");
 
         // Different complete operations separated by just one clear edge.
         for (n = 0; n < 2; n = n+1) begin
