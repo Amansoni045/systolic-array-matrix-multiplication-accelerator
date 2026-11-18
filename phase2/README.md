@@ -129,13 +129,29 @@ Phase 2 Component Status:
 ├── Sequential Matmul Baseline RTL    [COMPLETED - Member 1]
 ├── PE & Baseline Verification        [COMPLETED - Member 1]
 ├── Interface Contract Document       [COMPLETED - Member 1]
-├── Scalable Systolic Array Core      [PENDING   - Member 2]
+├── Scalable Systolic Array Core      [COMPLETED - Member 2; standalone regression passed]
 ├── Parameterized Controller & Top    [PENDING   - Member 3]
 ├── System Integration Verification   [PENDING   - Members 2 & 3]
 └── Final Phase 2 IEEE Report         [PENDING   - All Members]
 ```
 
 ### Upcoming Responsibilities:
-- **Member 2 (Mayank Sharma):** Design and implement the scalable $N \times N$ systolic array core with parameterized skewing stages based on `phase2_interface_contract.md`.
+- **Member 2 (Mayank Sharma):** Support system integration and verification with Member 3.
 - **Member 3 (Ankit Kumar Pandey):** Implement the parameterized matrix controller and top-level module, and develop comprehensive integration testbenches.
 - **Final Report Deliverable:** The completed Phase 2 IEEE conference report will be placed at `phase2/report/Phase_2_Final_IEEE_Project_Report.pdf`.
+
+
+## Member 2 — Scalable Array
+
+- RTL: `rtl/systolic_array.v`
+- Testbench: `testbench/tb_systolic_array_core.v`
+- Parameters: `ARRAY_SIZE`, `DATA_WIDTH`, `ACC_WIDTH`.
+- Supply unskewed inputs for N edges, then drain for `2*(N-1)` edges.
+
+Run from the repository root:
+
+```bash
+python3 phase2/verification/run_array_tests.py
+```
+
+The standalone regression passed all 10 configurations with Icarus Verilog, checking 110 matrices per configuration. It covers array sizes 1, 2, 3, 4 and 8, 8-bit and 16-bit operands, and minimum-width accumulators. The runner writes measured results to `simulation/results/array_summary.csv`.

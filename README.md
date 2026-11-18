@@ -50,7 +50,8 @@ Phase 2 extends the original accelerator into a parameterizable, scalable archit
 ### Phase 2 Focus Areas
 - **Configurable PE Architecture:** Fully parameterizable operand width (`DATA_WIDTH`) and accumulator width (`ACC_WIDTH`).
 - **Sequential Hardware Baseline:** Reusable single-MAC reference engine computing matrix products sequentially across $N^3$ clock cycles.
-- **Scalable Array & Integration (Upcoming):** Scalable $N \times N$ array mesh and parameterized FSM matrix controller.
+- **Scalable Array:** Parameterized $N \times N$ mesh verified with an array-only regression across 10 configurations.
+- **System Integration (Upcoming):** Parameterized FSM matrix controller, top-level and end-to-end performance comparison.
 
 ---
 
@@ -86,9 +87,9 @@ Phase 2 extends the original accelerator into a parameterizable, scalable archit
 │   ├── report/           # IEEE formal report (PDF, LaTeX, Markdown, Figures)
 │   └── video/            # Final prototype video presentation
 └── phase2/
-    ├── rtl/              # Parameterized PE and sequential baseline RTL
-    ├── testbench/        # Parameterized PE and baseline testbenches
-    ├── verification/     # Future Phase 2 verification artefacts
+    ├── rtl/              # Parameterized PE, sequential baseline and array RTL
+    ├── testbench/        # Parameterized PE, baseline and array testbenches
+    ├── verification/     # Array regression runner; system verification upcoming
     ├── simulation/       # Phase 2 simulation results and waveforms
     ├── docs/             # Phase 2 interface contract
     └── report/           # Future Phase 2 report deliverables
