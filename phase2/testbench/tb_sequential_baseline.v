@@ -43,6 +43,8 @@ module tb_sequential_baseline;
     reg signed [DATA_WIDTH-1:0] max_val;
 
     integer cycle_count;
+    integer timeout_count;
+    integer max_cycles;
     integer latency_ns;
     integer mac_count;
     integer r, c, k;
@@ -82,16 +84,31 @@ module tb_sequential_baseline;
             @(negedge clk);
             start = 1'b0;
             cycle_count = 0;
+            timeout_count = 0;
+            max_cycles = (ARRAY_SIZE * ARRAY_SIZE * ARRAY_SIZE) + 100;
 
             while (!done) begin
                 @(negedge clk);
                 cycle_count = cycle_count + 1;
+                timeout_count = timeout_count + 1;
+                if (timeout_count >= max_cycles) begin
+                    $fatal(1, "Simulation timeout: done was not asserted within %0d cycles!", max_cycles);
+                end
             end
-            latency_ns = cycle_count * 10;
-            mac_count = ARRAY_SIZE * ARRAY_SIZE * ARRAY_SIZE;
 
-            $display("Execution metrics: Clock cycles = %0d, Latency = %0d ns, Total MAC ops = %0d",
-                     cycle_count, latency_ns, mac_count);
+            mac_count = ARRAY_SIZE * ARRAY_SIZE * ARRAY_SIZE;
+            latency_ns = cycle_count * 10;
+
+            if (cycle_count !== mac_count) begin
+                $fatal(1, "Latency check failed: Expected %0d cycles, measured %0d cycles!",
+                       mac_count, cycle_count);
+            end
+
+            $display("Matrix dimension: %0dx%0d", ARRAY_SIZE, ARRAY_SIZE);
+            $display("Number of MAC operations: %0d", mac_count);
+            $display("Measured clock cycles: %0d", cycle_count);
+            $display("Clock period: 10 ns");
+            $display("Measured latency: %0d ns", latency_ns);
         end
     endtask
 
@@ -114,7 +131,9 @@ module tb_sequential_baseline;
     endtask
 
     initial begin
-        if (ARRAY_SIZE == 2)
+        if (DATA_WIDTH == 16)
+            $dumpfile("phase2/simulation/waveforms/seq_baseline_4x4_16bit.vcd");
+        else if (ARRAY_SIZE == 2)
             $dumpfile("phase2/simulation/waveforms/seq_baseline_2x2.vcd");
         else if (ARRAY_SIZE == 4)
             $dumpfile("phase2/simulation/waveforms/seq_baseline_4x4.vcd");
@@ -182,6 +201,89 @@ module tb_sequential_baseline;
         run_matmul();
         verify_result("Boundary values test");
 
+        @(negedge clk);
+        if (busy !== 1'b0)
+            $fatal(1, "Handshake test failed: busy should be 0 in idle!");
+        if (done !== 1'b0)
+            $fatal(1, "Handshake test failed: done should be 0 in idle!");
+
+        for (r = 0; r < ARRAY_SIZE; r = r + 1) begin
+            for (c = 0; c < ARRAY_SIZE; c = c + 1) begin
+                mat_a[r][c] = r * 2 + c + 1;
+                mat_b[r][c] = (r == c) ? 2 : -1;
+            end
+        end
+        compute_expected();
+        pack_inputs();
+
+        @(negedge clk);
+        start = 1'b1;
+        @(negedge clk);
+        start = 1'b0;
+        cycle_count = 0;
+
+        if (busy !== 1'b1)
+            $fatal(1, "Handshake test failed: busy did not become 1 after start accepted!");
+        if (done !== 1'b0)
+            $fatal(1, "Handshake test failed: done should be 0 during computation!");
+
+        repeat (2) begin
+            @(negedge clk);
+            cycle_count = cycle_count + 1;
+        end
+        if (busy !== 1'b1)
+            $fatal(1, "Handshake test failed: busy dropped prematurely!");
+
+        start = 1'b1;
+        @(negedge clk);
+        start = 1'b0;
+        cycle_count = cycle_count + 1;
+
+        a_flat = ~a_flat;
+        b_flat = ~b_flat;
+
+        timeout_count = 0;
+        max_cycles = (ARRAY_SIZE * ARRAY_SIZE * ARRAY_SIZE) + 100;
+
+        while (!done) begin
+            @(negedge clk);
+            cycle_count = cycle_count + 1;
+            timeout_count = timeout_count + 1;
+            if (timeout_count >= max_cycles)
+                $fatal(1, "Handshake test timeout: done not asserted!");
+            if (!done && busy !== 1'b1)
+                $fatal(1, "Handshake test failed: busy dropped before done was asserted!");
+        end
+
+        if (busy !== 1'b0)
+            $fatal(1, "Handshake test failed: busy did not become low when done was asserted!");
+        if (done !== 1'b1)
+            $fatal(1, "Handshake test failed: done is not 1 when result is ready!");
+
+        verify_result("Handshake start-ignore and bus-change test");
+
+        if (cycle_count !== (ARRAY_SIZE * ARRAY_SIZE * ARRAY_SIZE))
+            $fatal(1, "Handshake test failed: cycle count %0d did not match expected %0d!",
+                   cycle_count, (ARRAY_SIZE * ARRAY_SIZE * ARRAY_SIZE));
+
+        @(negedge clk);
+        if (done !== 1'b0)
+            $fatal(1, "Handshake test failed: done did not return to 0 after exactly one cycle!");
+        if (busy !== 1'b0)
+            $fatal(1, "Handshake test failed: second start request was queued or started unexpectedly!");
+
+        saved_result = result;
+        repeat (10) begin
+            @(negedge clk);
+            if (busy !== 1'b0)
+                $fatal(1, "Handshake test failed: busy became 1 unexpectedly during idle!");
+            if (done !== 1'b0)
+                $fatal(1, "Handshake test failed: done asserted unexpectedly during idle!");
+            if (result !== saved_result)
+                $fatal(1, "Handshake test failed: result changed during idle!");
+        end
+        $display("PASS: Start handshake and busy/done protocol verification");
+
         for (r = 0; r < ARRAY_SIZE; r = r + 1) begin
             for (c = 0; c < ARRAY_SIZE; c = c + 1) begin
                 mat_a[r][c] = r + 1;
@@ -198,8 +300,12 @@ module tb_sequential_baseline;
         a_flat = ~a_flat;
         b_flat = ~b_flat;
 
+        timeout_count = 0;
         while (!done) begin
             @(negedge clk);
+            timeout_count = timeout_count + 1;
+            if (timeout_count >= max_cycles)
+                $fatal(1, "Input latching test timeout!");
         end
         verify_result("Input latching test");
 
@@ -225,8 +331,12 @@ module tb_sequential_baseline;
         @(negedge clk);
         start = 1'b0;
 
+        timeout_count = 0;
         while (!done) begin
             @(negedge clk);
+            timeout_count = timeout_count + 1;
+            if (timeout_count >= max_cycles)
+                $fatal(1, "Back-to-back op 1 timeout!");
         end
         verify_result("Back-to-back operation 1");
 
@@ -243,8 +353,12 @@ module tb_sequential_baseline;
         @(negedge clk);
         start = 1'b0;
 
+        timeout_count = 0;
         while (!done) begin
             @(negedge clk);
+            timeout_count = timeout_count + 1;
+            if (timeout_count >= max_cycles)
+                $fatal(1, "Back-to-back op 2 timeout!");
         end
         verify_result("Back-to-back operation 2");
         $display("PASS: Back-to-back matrix operations");
@@ -278,6 +392,19 @@ module tb_sequential_baseline;
         run_matmul();
         verify_result("Post-reset operation test");
         $display("PASS: Reset behaviour test");
+
+        if (DATA_WIDTH == 16) begin
+            for (r = 0; r < ARRAY_SIZE; r = r + 1) begin
+                for (c = 0; c < ARRAY_SIZE; c = c + 1) begin
+                    mat_a[r][c] = ((r + c) % 2 == 0) ? 16'sd15000 : -16'sd20000;
+                    mat_b[r][c] = ((r * c) % 2 == 0) ? 16'sd12000 : -16'sd18000;
+                end
+            end
+            compute_expected();
+            pack_inputs();
+            run_matmul();
+            verify_result("Extended precision large accumulation test");
+        end
 
         @(negedge clk);
         $display("========================================");

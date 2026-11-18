@@ -63,8 +63,10 @@ Member 1 has completed the parameterized Processing Element and the Sequential M
   - Fully parameterizable for 8-bit and 16-bit configurations.
   - Covers 13 test scenarios: positive multiplication, negative multiplication, double negative, multiplication by zero, multi-MAC accumulation, invalid valid flag masking, accumulator clear, clear priority over MAC, asynchronous reset, data forwarding, valid forwarding, and signed boundary extremes.
 - **Sequential Baseline Testbench (`testbench/tb_sequential_baseline.v`):**
-  - Parameterizable for $2\times2$, $4\times4$, and $8\times8$ matrices.
-  - Tests identity matrix, zero matrix, mixed positive/negative values, signed boundaries, input bus latching, output stability during idle, back-to-back operations, and reset recovery.
+  - Parameterizable for $2\times2$, $4\times4$, and $8\times8$ matrices, as well as 16-bit extended precision ($4\times4$, `DATA_WIDTH=16`, `ACC_WIDTH=48`).
+  - **Handshake Protocol & Busy/Done Verification:** Confirms `busy` asserts upon start acceptance, remains high throughout execution, and falls when done; confirms `done` asserts for exactly one clock cycle and returns to zero; confirms secondary `start` requests during `busy` are safely ignored and not queued; confirms external input bus corruption during computation does not affect results; confirms results remain stable across idle periods.
+  - **Deterministic Latency & Timeout Protection:** Verifies exact $N^3$ clock cycle compute latency from start acceptance to done assertion; incorporates simulation timeout safeguards.
+  - **Comprehensive Arithmetic Coverage:** Tests identity matrix ($A \times I = A$), zero matrix ($A \times 0 = 0$), mixed positive/negative values, signed boundary extremes (8-bit: $-128$ to $+127$; 16-bit: $-32768$ to $+32767$), large-magnitude product accumulation without overflow, back-to-back operations, and mid-computation asynchronous reset recovery.
   - Verifies all results against an independent algorithmic matrix multiplication model.
 
 ---
@@ -98,11 +100,17 @@ iverilog -g2012 -P tb_sequential_baseline.ARRAY_SIZE=2 -P tb_sequential_baseline
     phase2/rtl/sequential_matmul_baseline.v phase2/testbench/tb_sequential_baseline.v
 vvp phase2/simulation/results/seq_baseline_2x2.vvp
 
-# 4x4 Matrix Configuration
+# 4x4 Matrix Configuration (Standard Precision: DATA_WIDTH=8, ACC_WIDTH=32)
 iverilog -g2012 -P tb_sequential_baseline.ARRAY_SIZE=4 -P tb_sequential_baseline.DATA_WIDTH=8 -P tb_sequential_baseline.ACC_WIDTH=32 \
     -o phase2/simulation/results/seq_baseline_4x4.vvp \
     phase2/rtl/sequential_matmul_baseline.v phase2/testbench/tb_sequential_baseline.v
 vvp phase2/simulation/results/seq_baseline_4x4.vvp
+
+# 4x4 Matrix Configuration (Extended Precision: DATA_WIDTH=16, ACC_WIDTH=48)
+iverilog -g2012 -P tb_sequential_baseline.ARRAY_SIZE=4 -P tb_sequential_baseline.DATA_WIDTH=16 -P tb_sequential_baseline.ACC_WIDTH=48 \
+    -o phase2/simulation/results/seq_baseline_4x4_16bit.vvp \
+    phase2/rtl/sequential_matmul_baseline.v phase2/testbench/tb_sequential_baseline.v
+vvp phase2/simulation/results/seq_baseline_4x4_16bit.vvp
 
 # 8x8 Scaled Matrix Configuration
 iverilog -g2012 -P tb_sequential_baseline.ARRAY_SIZE=8 -P tb_sequential_baseline.DATA_WIDTH=8 -P tb_sequential_baseline.ACC_WIDTH=32 \
