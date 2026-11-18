@@ -17,6 +17,8 @@ WAVES = ROOT / 'phase2/simulation/waveforms'
 CONFIGS = (
     (2, 8, 32), (4, 8, 32), (8, 8, 32),
     (2, 16, 48), (4, 16, 48), (8, 16, 48),
+    (4, 8, 16), (4, 16, 32),  # Minimum legal accumulator: wraparound.
+    (1, 8, 32), (3, 8, 32),   # No skew stages, and a non-power-of-two grid.
 )
 
 
