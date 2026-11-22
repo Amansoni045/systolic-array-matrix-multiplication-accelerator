@@ -18,6 +18,8 @@
 *.log
 **/simulation/results/*
 !**/simulation/results/.gitkeep
+# Keep the measured Phase 2 system benchmark summary as a deliverable.
+!phase2/simulation/results/system_summary.csv
 
 __pycache__/
 *.py[cod]
