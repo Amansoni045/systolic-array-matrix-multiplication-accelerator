@@ -1,105 +1,61 @@
 # Systolic Array Matrix Multiplication Accelerator
 
-A high-throughput, energy-efficient General Matrix Multiply (GEMM) hardware accelerator implemented in Verilog HDL. The design leverages a 2D systolic array mesh architecture with local accumulation and data forwarding to maximize operand reuse, minimize memory bandwidth bottlenecks, and overcome the Von Neumann memory wall for deep learning and matrix-heavy workloads.
+A high-throughput, parameterizable hardware accelerator for general matrix multiplication (GEMM) implemented in Verilog HDL. The accelerator utilizes a two-dimensional output-stationary systolic array with integrated diagonal skewing registers and an autonomous finite state machine controller. It scales across matrix dimensions ($N \times N$) and arithmetic precisions (INT8, INT16), achieving an optimal $3N-1$ clock-cycle compute latency. A single-MAC sequential baseline is provided for bit-accurate verification and performance benchmarking.
 
----
+## Key Features
 
-## Project Repository Structure
+- **Scalable Architecture:** Parameterized array dimension (`ARRAY_SIZE`), operand width (`DATA_WIDTH`), and accumulator width (`ACC_WIDTH`).
+- **Output-Stationary Dataflow:** Dot products accumulate locally within processing elements, minimizing data movement and register switching.
+- **Autonomous FSM Control:** Deterministic input latching, single-cycle clear, and streamlined LOAD/DRAIN scheduling with start/busy/done handshaking.
+- **Benchmarked Performance:** Validated against a single-MAC sequential baseline across 9 configurations, delivering up to $22.26\times$ latency speedup at $N=8$.
 
-This repository contains two distinct project phases:
+## Repository Layout
 
-```text
-systolic-array-matrix-multiplication-accelerator/
-├── phase1/    # Phase 1: 4×4 INT8/INT32 Systolic Array Accelerator (Submitted & Complete)
-└── phase2/    # Phase 2: Parameterizable System Integration & Baseline (Complete)
+| Directory / File | Description |
+|---|---|
+| `rtl/` | Synthesizable Verilog modules (PE, array mesh, controller, top level, sequential baseline) |
+| `testbench/` | Self-checking Verilog testbenches for unit, core, system, and baseline verification |
+| `verification/` | Python golden model, vector generators, and automated regression runners |
+| `sim/` | Simulation artifacts (`results/system_summary.csv` and waveform output directory) |
+| `phase&#49;_report/` | Phase I IEEE project report (`.tex` and `.pdf`) and architecture figures |
+| `final_report/` | Final IEEE project report (`.tex` and `.pdf`) with comprehensive benchmark data |
+| `video/` | Prototype demonstration video (`MCA_Phase_1.mp4`) |
+
+## Team Members and Roles
+
+| Member | Assigned Responsibility |
+|---|---|
+| **Aman Soni** (Member 1) | Processing Element (`rtl/processing_element.v`), Sequential Baseline (`rtl/sequential_matmul_baseline.v`), PE and baseline testbenches, interface contract |
+| **Mayank Sharma** (Member 2) | Systolic Array mesh & skewing logic (`rtl/systolic_array.v`), core scoreboard testbench (`testbench/tb_systolic_array_core.v`) |
+| **Ankit Kumar Pandey** (Member 3) | Matrix Controller FSM (`rtl/matrix_controller.v`), top-level wrapper (`rtl/systolic_array_top.v`), golden model, system tests & benchmarking |
+
+## Simulation and Verification
+
+Run each test suite from the repository root using Icarus Verilog and Python 3:
+
+```bash
+# 1. Processing Element Unit Test (8-bit operands, 32-bit accumulator)
+iverilog -g2012 -DDATA_WIDTH=8 -DACC_WIDTH=32 -o sim/pe_8bit.vvp rtl/processing_element.v testbench/tb_processing_element.v && vvp sim/pe_8bit.vvp
+
+# 2. Processing Element Unit Test (16-bit operands, 48-bit accumulator)
+iverilog -g2012 -P tb_processing_element.DATA_WIDTH=16 -P tb_processing_element.ACC_WIDTH=48 -o sim/pe_16bit.vvp rtl/processing_element.v testbench/tb_processing_element.v && vvp sim/pe_16bit.vvp
+
+# 3. Sequential Baseline Test (4x4 matrix, 8-bit operands, 32-bit accumulator)
+iverilog -g2012 -DARRAY_SIZE=4 -DDATA_WIDTH=8 -DACC_WIDTH=32 -o sim/seq_4x4.vvp rtl/sequential_matmul_baseline.v testbench/tb_sequential_baseline.v && vvp sim/seq_4x4.vvp
+
+# 4. Golden Model Unit Tests
+python3 -m unittest discover -s verification -p "*test*.py" -v
+
+# 5. Array Core Regressions (10 configurations)
+python3 verification/run_array_tests.py
+
+# 6. Full System Integration & Benchmark Suite (9 configurations, 414 test cases)
+python3 verification/run_system_tests.py
 ```
 
----
+## Documentation and Deliverables
 
-## Phase 1 — Completed
-
-Phase 1 delivered a fully functional 4×4 Output-Stationary systolic array accelerator with integrated perimeter skewing buffers, an autonomous FSM matrix controller, and multi-tier verification.
-
-- **Phase 1 Overview & Guide:** [phase1/README.md](phase1/README.md)
-- **IEEE Project Report (PDF):** [IEEE_Project_Report_Phase_1.pdf](phase1/report/IEEE_Project_Report_Phase_1.pdf)
-- **Project Report (Markdown):** [REPORT.md](phase1/report/REPORT.md)
-- **LaTeX Report Source:** [IEEE_Project_Report_Phase_1.tex](phase1/report/IEEE_Project_Report_Phase_1.tex)
-- **Presentation Video:** [MCA_Phase_1.mp4](phase1/video/MCA_Phase_1.mp4) (4:54.5 presentation in 1080p)
-- **Architecture Specification:** [ACCELERATOR_SPECIFICATION.md](phase1/docs/architecture/ACCELERATOR_SPECIFICATION.md)
-- **Theoretical References:** [BIBLIOGRAPHY.md](phase1/docs/references/BIBLIOGRAPHY.md)
-
-### Phase 1 Specifications
-- **Array Size:** 4×4 (16 homogeneous Processing Elements)
-- **Input Precision:** Signed 8-bit integer (`INT8`, range $-128$ to $+127$)
-- **Accumulator Precision:** Signed 32-bit integer (`INT32`) to guarantee overflow-free accumulation
-- **Dataflow Paradigm:** Output-Stationary (OS) with registered horizontal ($A$) and vertical ($B$) data forwarding
-- **Internal Skewing:** Embedded skew registers allow parallel, unskewed matrix row/column streaming
-- **Deterministic Latency:** Exactly 14 clock cycles from `start` to valid `done` commitment
-
----
-
-## Phase 2 — Complete
-
-Phase 2 extends the accelerator into a parameterizable, scalable system and integrates the controller, top level, PE and array with a sequential hardware baseline for direct performance, throughput, and hardware-cost comparison.
-
-- **Phase 2 Overview & Guide:** [phase2/README.md](phase2/README.md)
-- **Configurable Processing Element RTL:** [processing_element.v](phase2/rtl/processing_element.v)
-- **Sequential Matmul Baseline RTL:** [sequential_matmul_baseline.v](phase2/rtl/sequential_matmul_baseline.v)
-- **Parameterized Controller RTL:** [matrix_controller.v](phase2/rtl/matrix_controller.v)
-- **Integrated Top Level:** [systolic_array_top.v](phase2/rtl/systolic_array_top.v)
-- **End-to-End Testbench:** [tb_systolic_array.v](phase2/testbench/tb_systolic_array.v)
-- **Python Golden Model:** [golden_model.py](phase2/verification/golden_model.py)
-- **System Integration Design:** [phase2_system_integration.md](phase2/docs/phase2_system_integration.md)
-- **Measured Performance Results:** [system_integration_results.md](phase2/report/system_integration_results.md)
-- **Phase 2 Interface Contract:** [phase2_interface_contract.md](phase2/docs/phase2_interface_contract.md)
-
-### Phase 2 Focus Areas
-- **Configurable PE Architecture:** Fully parameterizable operand width (`DATA_WIDTH`) and accumulator width (`ACC_WIDTH`).
-- **Sequential Hardware Baseline:** Reusable single-MAC reference engine computing matrix products sequentially across $N^3$ clock cycles.
-- **Scalable Array:** Parameterized $N \times N$ mesh verified with an array-only regression across 10 configurations.
-- **Parameterized Controller:** Dimension-derived `LOAD = N` and `DRAIN = 2N-1` schedule, input latching, exact `3N-1` cycle latency and single-cycle `done`.
-- **Full System Integration:** Controller + top level + PE + array + sequential baseline co-verified end-to-end.
-- **Performance Comparison:** 9 configurations and 414 end-to-end cases, with measured latency and throughput at 100 MHz.
-- **Golden Model:** Arbitrary `N`, `DATA_WIDTH` and `ACC_WIDTH`, RTL-exact signed wrapping, vector generation and result verification.
-
----
-
-## Technologies Used
-
-- **Hardware Description Language:** Verilog HDL (IEEE 1364-2001 / IEEE 1800 SystemVerilog standard features)
-- **Simulation & Synthesis Toolchain:** Icarus Verilog (`iverilog`, `vvp` v12+; regression run on v13.0)
-- **Waveform Inspection:** GTKWave (`.vcd` visual analysis)
-- **Algorithmic Modeling & Verification:** Python 3 (automated test vector generation and validation)
-- **Documentation & Typesetting:** LaTeX (IEEEtran conference template), Markdown, Git
-
----
-
-## Team Members & Responsibilities
-
-| Member | Project Role | Core Responsibilities |
-|---|---|---|
-| **Aman Soni** (Member 1) | Processing Element & Datapath RTL | Phase 1 PE implementation, signed multiplication and accumulation, forwarding registers, valid control, PE verification. Phase 2 parameterizable PE and sequential baseline reference. |
-| **Mayank Sharma** (Member 2) | Systolic Array Architecture | Phase 1 4×4 2D mesh generation, horizontal/vertical data interconnects, perimeter skewing and timing alignment, core scoreboard verification. Phase 2 scalable array architecture. |
-| **Ankit Kumar Pandey** (Member 3) | Matrix Controller & Top Integration | Phase 1 FSM controller (`matrix_controller.v`), top-level integration (`systolic_array_top.v`), input matrix registers, system verification, and Python golden model. Phase 2 parameterized controller, top-level integration, Python golden model extension, end-to-end system verification and performance benchmarking. |
-
----
-
-## Quick Navigation
-
-```text
-├── phase1/
-│   ├── rtl/              # Verilog source (PE, Array, Controller, Top)
-│   ├── testbench/        # Unit, core scoreboard, and system testbenches
-│   ├── verification/     # Python golden model & 40 test vectors
-│   ├── simulation/       # Simulation results and waveform captures
-│   ├── docs/             # Architecture specifications and literature
-│   ├── report/           # IEEE formal report (PDF, LaTeX, Markdown, Figures)
-│   └── video/            # Final prototype video presentation
-└── phase2/
-    ├── rtl/              # Parameterized PE, array, controller, top and baseline RTL
-    ├── testbench/        # PE, baseline, array-core and end-to-end system testbenches
-    ├── verification/     # Golden model, unit tests and array/system regression runners
-    ├── simulation/       # Phase 2 simulation results and waveforms
-    ├── docs/             # Interface contract and system integration design
-    └── report/           # Measured performance results and future IEEE report
-```
+- **Phase I IEEE Report:** [IEEE_Project_Report_Phase_1.pdf](phase%31_report/IEEE_Project_Report_Phase_%31.pdf)
+- **Final IEEE Report:** [Final_IEEE_Project_Report.pdf](final_report/Final_IEEE_Project_Report.pdf)
+- **Prototype Demonstration Video:** [MCA_Phase_1.mp4](video/MCA_Phase_1.mp4)
+- **Measured Benchmark Summary:** [system_summary.csv](sim/results/system_summary.csv)

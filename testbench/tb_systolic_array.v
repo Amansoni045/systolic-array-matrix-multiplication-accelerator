@@ -1,0 +1,697 @@
+`timescale 1ns/1ps
+
+module tb_systolic_array;
+    parameter ARRAY_SIZE    = 4;
+    parameter DATA_WIDTH    = 8;
+    parameter ACC_WIDTH     = 32;
+    parameter RANDOM_CASES  = 8;
+    parameter GOLDEN_CASES  = 0;
+
+    localparam ELEMENTS            = ARRAY_SIZE * ARRAY_SIZE;
+    localparam IN_WIDTH            = ELEMENTS * DATA_WIDTH;
+    localparam OUT_WIDTH           = ELEMENTS * ACC_WIDTH;
+    localparam DIRECTED_CASES      = 8;
+    localparam SYSTOLIC_LATENCY    = 3 * ARRAY_SIZE - 1;
+    localparam SYSTOLIC_II         = 3 * ARRAY_SIZE;
+    localparam SEQUENTIAL_LATENCY  = ARRAY_SIZE * ARRAY_SIZE * ARRAY_SIZE;
+    localparam SEQUENTIAL_II       = SEQUENTIAL_LATENCY + 1;
+    localparam TIMEOUT_CYCLES      = SEQUENTIAL_LATENCY + 4 * ARRAY_SIZE + 100;
+    localparam GOLDEN_STORAGE      = ((GOLDEN_CASES > 0) ? GOLDEN_CASES : 1) * ELEMENTS;
+
+    reg clk = 0;
+    always #5 clk = ~clk;
+
+    reg rst_n = 0;
+    reg sys_start = 0;
+    reg seq_start = 0;
+
+    reg signed [IN_WIDTH-1:0]  a_flat = 0;
+    reg signed [IN_WIDTH-1:0]  b_flat = 0;
+
+    wire                        busy;
+    wire                        done;
+    wire signed [OUT_WIDTH-1:0] result;
+
+    wire                        seq_busy;
+    wire                        seq_done;
+    wire signed [OUT_WIDTH-1:0] seq_result;
+
+    systolic_array_top #(
+        .ARRAY_SIZE(ARRAY_SIZE),
+        .DATA_WIDTH(DATA_WIDTH),
+        .ACC_WIDTH (ACC_WIDTH)
+    ) dut (
+        .clk    (clk),
+        .rst_n  (rst_n),
+        .start  (sys_start),
+        .a_flat (a_flat),
+        .b_flat (b_flat),
+        .busy   (busy),
+        .done   (done),
+        .result (result)
+    );
+
+    sequential_matmul_baseline #(
+        .ARRAY_SIZE(ARRAY_SIZE),
+        .DATA_WIDTH(DATA_WIDTH),
+        .ACC_WIDTH (ACC_WIDTH)
+    ) baseline (
+        .clk    (clk),
+        .rst_n  (rst_n),
+        .start  (seq_start),
+        .a_flat (a_flat),
+        .b_flat (b_flat),
+        .busy   (seq_busy),
+        .done   (seq_done),
+        .result (seq_result)
+    );
+
+    reg signed [DATA_WIDTH-1:0] A [0:ELEMENTS-1];
+    reg signed [DATA_WIDTH-1:0] B [0:ELEMENTS-1];
+    reg signed [ACC_WIDTH-1:0]  C_exp [0:ELEMENTS-1];
+    reg signed [ACC_WIDTH-1:0]  C_sys [0:ELEMENTS-1];
+    reg signed [ACC_WIDTH-1:0]  C_seq [0:ELEMENTS-1];
+    reg signed [ACC_WIDTH-1:0]  saved1 [0:ELEMENTS-1];
+    reg signed [ACC_WIDTH-1:0]  saved2 [0:ELEMENTS-1];
+
+    reg signed [DATA_WIDTH-1:0] gv_a [0:GOLDEN_STORAGE-1];
+    reg signed [DATA_WIDTH-1:0] gv_b [0:GOLDEN_STORAGE-1];
+    reg signed [ACC_WIDTH-1:0]  gv_c [0:GOLDEN_STORAGE-1];
+
+    integer errors = 0;
+    integer cases_run = 0;
+    integer case_id = 0;
+    integer sys_cycles = 0;
+    integer seq_cycles = 0;
+    integer sys_ii = SYSTOLIC_II;
+    integer seq_ii = SEQUENTIAL_II;
+    integer loop_i;
+
+    real latency_speedup;
+    real throughput_speedup;
+    real sys_macs_per_cycle;
+    real seq_macs_per_cycle;
+
+    string vectors_dir;
+    string report_path;
+    string wave_path;
+    integer report_fd;
+
+    task automatic pack_matrices;
+        integer pi;
+        begin
+            for (pi = 0; pi < ELEMENTS; pi = pi + 1) begin
+                a_flat[DATA_WIDTH*pi +: DATA_WIDTH] = A[pi];
+                b_flat[DATA_WIDTH*pi +: DATA_WIDTH] = B[pi];
+            end
+        end
+    endtask
+
+    task automatic compute_expected;
+        integer er, ec, ek;
+        reg signed [2*DATA_WIDTH-1:0] product;
+        reg signed [ACC_WIDTH-1:0] product_ext;
+        reg signed [ACC_WIDTH-1:0] sum;
+        begin
+            for (er = 0; er < ARRAY_SIZE; er = er + 1) begin
+                for (ec = 0; ec < ARRAY_SIZE; ec = ec + 1) begin
+                    sum = {ACC_WIDTH{1'b0}};
+                    for (ek = 0; ek < ARRAY_SIZE; ek = ek + 1) begin
+                        product = A[er*ARRAY_SIZE+ek] * B[ek*ARRAY_SIZE+ec];
+                        product_ext = product;
+                        sum = sum + product_ext;
+                    end
+                    C_exp[er*ARRAY_SIZE+ec] = sum;
+                end
+            end
+        end
+    endtask
+
+    task automatic launch_systolic;
+        begin
+            @(negedge clk);
+            sys_start = 1'b1;
+            @(posedge clk);
+            @(negedge clk);
+            sys_start = 1'b0;
+        end
+    endtask
+
+    task automatic launch_sequential;
+        begin
+            @(negedge clk);
+            seq_start = 1'b1;
+            @(posedge clk);
+            @(negedge clk);
+            seq_start = 1'b0;
+        end
+    endtask
+
+    task automatic capture_systolic;
+        integer ci;
+        begin
+            for (ci = 0; ci < ELEMENTS; ci = ci + 1)
+                C_sys[ci] = result[ACC_WIDTH*ci +: ACC_WIDTH];
+        end
+    endtask
+
+    task automatic capture_sequential;
+        integer ci;
+        begin
+            for (ci = 0; ci < ELEMENTS; ci = ci + 1)
+                C_seq[ci] = seq_result[ACC_WIDTH*ci +: ACC_WIDTH];
+        end
+    endtask
+
+    task automatic wait_systolic_complete;
+        begin
+            sys_cycles = 0;
+            while (!done) begin
+                @(posedge clk);
+                sys_cycles = sys_cycles + 1;
+                @(negedge clk);
+                if (!done && busy !== 1'b1) begin
+                    $display("FAIL case %0d: busy dropped at cycle %0d before done",
+                             case_id, sys_cycles);
+                    errors = errors + 1;
+                end
+                if (sys_cycles > TIMEOUT_CYCLES)
+                    $fatal(1, "Systolic timeout in case %0d", case_id);
+            end
+
+            capture_systolic;
+            if (sys_cycles !== SYSTOLIC_LATENCY) begin
+                $display("FAIL case %0d: systolic latency %0d, expected %0d",
+                         case_id, sys_cycles, SYSTOLIC_LATENCY);
+                errors = errors + 1;
+            end
+
+            @(posedge clk);
+            @(negedge clk);
+            if (done !== 1'b0) begin
+                $display("FAIL case %0d: done stayed high for more than one cycle", case_id);
+                errors = errors + 1;
+            end
+
+            repeat (3) @(posedge clk);
+            #1;
+            @(negedge clk);
+            for (loop_i = 0; loop_i < ELEMENTS; loop_i = loop_i + 1) begin
+                if (result[ACC_WIDTH*loop_i +: ACC_WIDTH] !== C_sys[loop_i]) begin
+                    $display("FAIL case %0d: systolic result changed after done at %0d",
+                             case_id, loop_i);
+                    errors = errors + 1;
+                end
+            end
+        end
+    endtask
+
+    task automatic wait_sequential_complete;
+        begin
+            seq_cycles = 0;
+            while (!seq_done) begin
+                @(posedge clk);
+                seq_cycles = seq_cycles + 1;
+                @(negedge clk);
+                if (!seq_done && seq_busy !== 1'b1) begin
+                    $display("FAIL case %0d: sequential busy dropped at cycle %0d",
+                             case_id, seq_cycles);
+                    errors = errors + 1;
+                end
+                if (seq_cycles > TIMEOUT_CYCLES)
+                    $fatal(1, "Sequential timeout in case %0d", case_id);
+            end
+
+            capture_sequential;
+            if (seq_cycles !== SEQUENTIAL_LATENCY) begin
+                $display("FAIL case %0d: sequential latency %0d, expected %0d",
+                         case_id, seq_cycles, SEQUENTIAL_LATENCY);
+                errors = errors + 1;
+            end
+
+            @(posedge clk);
+            @(negedge clk);
+            if (seq_done !== 1'b0) begin
+                $display("FAIL case %0d: sequential done stayed high for more than one cycle",
+                         case_id);
+                errors = errors + 1;
+            end
+        end
+    endtask
+
+    task automatic compare_systolic_expected;
+        integer ci;
+        begin
+            for (ci = 0; ci < ELEMENTS; ci = ci + 1) begin
+                if (C_sys[ci] !== C_exp[ci]) begin
+                    $display("FAIL case %0d: systolic C[%0d][%0d] expected %0d got %0d",
+                             case_id, ci/ARRAY_SIZE, ci%ARRAY_SIZE, C_exp[ci], C_sys[ci]);
+                    errors = errors + 1;
+                end
+            end
+        end
+    endtask
+
+    task automatic compare_sequential_expected;
+        integer ci;
+        begin
+            for (ci = 0; ci < ELEMENTS; ci = ci + 1) begin
+                if (C_seq[ci] !== C_exp[ci]) begin
+                    $display("FAIL case %0d: sequential C[%0d][%0d] expected %0d got %0d",
+                             case_id, ci/ARRAY_SIZE, ci%ARRAY_SIZE, C_exp[ci], C_seq[ci]);
+                    errors = errors + 1;
+                end
+            end
+        end
+    endtask
+
+    task automatic compare_systolic_sequential;
+        integer ci;
+        begin
+            for (ci = 0; ci < ELEMENTS; ci = ci + 1) begin
+                if (C_sys[ci] !== C_seq[ci]) begin
+                    $display("FAIL case %0d: systolic/sequential mismatch C[%0d][%0d] %0d vs %0d",
+                             case_id, ci/ARRAY_SIZE, ci%ARRAY_SIZE, C_sys[ci], C_seq[ci]);
+                    errors = errors + 1;
+                end
+            end
+        end
+    endtask
+
+    task automatic run_case;
+        input integer calculate_expected;
+        begin
+            pack_matrices;
+            if (calculate_expected)
+                compute_expected;
+
+            launch_systolic;
+            if (busy !== 1'b1) begin
+                $display("FAIL case %0d: busy not asserted after start", case_id);
+                errors = errors + 1;
+            end
+            if (done !== 1'b0) begin
+                $display("FAIL case %0d: done asserted too early", case_id);
+                errors = errors + 1;
+            end
+            wait_systolic_complete;
+            compare_systolic_expected;
+
+            launch_sequential;
+            if (seq_busy !== 1'b1) begin
+                $display("FAIL case %0d: sequential busy not asserted", case_id);
+                errors = errors + 1;
+            end
+            wait_sequential_complete;
+            compare_sequential_expected;
+            compare_systolic_sequential;
+
+            cases_run = cases_run + 1;
+        end
+    endtask
+
+    task automatic run_directed_cases;
+        integer dc, di;
+        reg signed [DATA_WIDTH-1:0] lo, hi;
+        begin
+            lo = {1'b1, {(DATA_WIDTH-1){1'b0}}};
+            hi = {1'b0, {(DATA_WIDTH-1){1'b1}}};
+            for (dc = 0; dc < DIRECTED_CASES; dc = dc + 1) begin
+                case_id = dc;
+                for (di = 0; di < ELEMENTS; di = di + 1) begin
+                    case (dc)
+                        0: begin A[di] = 0; B[di] = 0; end
+                        1: begin A[di] = (di/ARRAY_SIZE == di%ARRAY_SIZE) ? 1 : 0;
+                                  B[di] = di + 1; end
+                        2: begin A[di] = di + 1;
+                                  B[di] = (di/ARRAY_SIZE == di%ARRAY_SIZE) ? 1 : 0; end
+                        3: begin A[di] = 1; B[di] = 1; end
+                        4: begin A[di] = hi; B[di] = hi; end
+                        5: begin A[di] = lo; B[di] = lo; end
+                        6: begin A[di] = ((di % 2) == 0) ? hi : lo;
+                                  B[di] = ((di % 3) == 0) ? lo : hi; end
+                        default: begin A[di] = di - ARRAY_SIZE;
+                                         B[di] = ARRAY_SIZE - di; end
+                    endcase
+                end
+                run_case(1);
+            end
+        end
+    endtask
+
+    task automatic run_golden_cases;
+        integer gc, gi;
+        begin
+            for (gc = 0; gc < GOLDEN_CASES; gc = gc + 1) begin
+                case_id = 1000 + gc;
+                for (gi = 0; gi < ELEMENTS; gi = gi + 1) begin
+                    A[gi] = gv_a[gc*ELEMENTS+gi];
+                    B[gi] = gv_b[gc*ELEMENTS+gi];
+                    C_exp[gi] = gv_c[gc*ELEMENTS+gi];
+                end
+                run_case(0);
+            end
+        end
+    endtask
+
+    task automatic run_random_cases;
+        integer rc, ri;
+        integer seed;
+        begin
+            seed = 32'h5A17C0DE;
+            for (rc = 0; rc < RANDOM_CASES; rc = rc + 1) begin
+                case_id = 2000 + rc;
+                for (ri = 0; ri < ELEMENTS; ri = ri + 1) begin
+                    A[ri] = $random(seed);
+                    B[ri] = $random(seed);
+                end
+                run_case(1);
+            end
+        end
+    endtask
+
+    task automatic test_latching_and_busy_start;
+        integer li;
+        reg signed [IN_WIDTH-1:0] corrupted_a;
+        reg signed [IN_WIDTH-1:0] corrupted_b;
+        begin
+            case_id = 3000;
+            for (li = 0; li < ELEMENTS; li = li + 1) begin
+                A[li] = li + 1;
+                B[li] = li * 2 - 3;
+            end
+            pack_matrices;
+            compute_expected;
+
+            launch_systolic;
+            if (busy !== 1'b1) begin
+                $display("FAIL case %0d: busy not asserted", case_id);
+                errors = errors + 1;
+            end
+
+            corrupted_a = a_flat ^ {IN_WIDTH{1'b1}};
+            corrupted_b = b_flat ^ {IN_WIDTH{1'b1}};
+            a_flat = corrupted_a;
+            b_flat = corrupted_b;
+
+            sys_cycles = 0;
+            while (!done) begin
+                @(posedge clk);
+                sys_cycles = sys_cycles + 1;
+                @(negedge clk);
+
+                if (sys_cycles == 3)
+                    sys_start = 1'b1;
+                if (sys_cycles == 4)
+                    sys_start = 1'b0;
+                if (!done && busy !== 1'b1) begin
+                    $display("FAIL case %0d: busy dropped during latched operation", case_id);
+                    errors = errors + 1;
+                end
+                if (sys_cycles > TIMEOUT_CYCLES)
+                    $fatal(1, "Latch test timeout");
+            end
+
+            capture_systolic;
+            if (sys_cycles !== SYSTOLIC_LATENCY) begin
+                $display("FAIL case %0d: ignored start changed latency to %0d (expected %0d)",
+                         case_id, sys_cycles, SYSTOLIC_LATENCY);
+                errors = errors + 1;
+            end
+            compare_systolic_expected;
+
+            repeat (3) @(posedge clk);
+            #1;
+            if (busy !== 1'b0 || done !== 1'b0) begin
+                $display("FAIL case %0d: busy-time start was queued after completion", case_id);
+                errors = errors + 1;
+            end
+            @(negedge clk);
+
+            cases_run = cases_run + 1;
+        end
+    endtask
+
+    task automatic test_back_to_back;
+        integer bi, interval;
+        begin
+            case_id = 4000;
+
+            for (bi = 0; bi < ELEMENTS; bi = bi + 1) begin
+                A[bi] = bi + 1;
+                B[bi] = (bi % 3) - 1;
+            end
+            pack_matrices;
+            compute_expected;
+            for (bi = 0; bi < ELEMENTS; bi = bi + 1)
+                saved1[bi] = C_exp[bi];
+
+            launch_systolic;
+            if (busy !== 1'b1) begin
+                $display("FAIL case %0d: busy not asserted", case_id);
+                errors = errors + 1;
+            end
+            sys_cycles = 0;
+            while (!done) begin
+                @(posedge clk);
+                sys_cycles = sys_cycles + 1;
+                @(negedge clk);
+                if (sys_cycles > TIMEOUT_CYCLES) $fatal(1, "Back-to-back timeout");
+            end
+            if (sys_cycles !== SYSTOLIC_LATENCY) begin
+                $display("FAIL case %0d: first latency %0d expected %0d",
+                         case_id, sys_cycles, SYSTOLIC_LATENCY);
+                errors = errors + 1;
+            end
+            capture_systolic;
+            for (bi = 0; bi < ELEMENTS; bi = bi + 1) begin
+                if (C_sys[bi] !== saved1[bi]) begin
+                    $display("FAIL case %0d: first result mismatch at %0d", case_id, bi);
+                    errors = errors + 1;
+                end
+            end
+
+            for (bi = 0; bi < ELEMENTS; bi = bi + 1) begin
+                A[bi] = 3*bi - 5;
+                B[bi] = bi % 5;
+            end
+            pack_matrices;
+            compute_expected;
+            for (bi = 0; bi < ELEMENTS; bi = bi + 1)
+                saved2[bi] = C_exp[bi];
+
+            sys_start = 1'b1;
+            @(posedge clk);
+            @(negedge clk);
+            sys_start = 1'b0;
+            interval = 1;
+            while (!done) begin
+                @(posedge clk);
+                interval = interval + 1;
+                @(negedge clk);
+                if (interval > TIMEOUT_CYCLES) $fatal(1, "Back-to-back op2 timeout");
+            end
+            sys_ii = interval;
+            if (interval !== SYSTOLIC_II) begin
+                $display("FAIL case %0d: systolic initiation interval %0d expected %0d",
+                         case_id, interval, SYSTOLIC_II);
+                errors = errors + 1;
+            end
+            capture_systolic;
+            for (bi = 0; bi < ELEMENTS; bi = bi + 1) begin
+                if (C_sys[bi] !== saved2[bi]) begin
+                    $display("FAIL case %0d: second result mismatch at %0d", case_id, bi);
+                    errors = errors + 1;
+                end
+            end
+
+            for (bi = 0; bi < ELEMENTS; bi = bi + 1) begin
+                A[bi] = bi + 1;
+                B[bi] = (bi % 3) - 1;
+            end
+            pack_matrices;
+            seq_start = 1'b1;
+            @(posedge clk);
+            @(negedge clk);
+            seq_start = 1'b0;
+            seq_cycles = 0;
+            while (!seq_done) begin
+                @(posedge clk);
+                seq_cycles = seq_cycles + 1;
+                @(negedge clk);
+                if (seq_cycles > TIMEOUT_CYCLES) $fatal(1, "Sequential back-to-back timeout");
+            end
+            if (seq_cycles !== SEQUENTIAL_LATENCY) begin
+                $display("FAIL case %0d: sequential first latency %0d expected %0d",
+                         case_id, seq_cycles, SEQUENTIAL_LATENCY);
+                errors = errors + 1;
+            end
+            capture_sequential;
+            for (bi = 0; bi < ELEMENTS; bi = bi + 1) begin
+                if (C_seq[bi] !== saved1[bi]) begin
+                    $display("FAIL case %0d: sequential first result mismatch at %0d",
+                             case_id, bi);
+                    errors = errors + 1;
+                end
+            end
+
+            for (bi = 0; bi < ELEMENTS; bi = bi + 1) begin
+                A[bi] = 3*bi - 5;
+                B[bi] = bi % 5;
+            end
+            pack_matrices;
+            seq_start = 1'b1;
+            @(posedge clk);
+            @(negedge clk);
+            seq_start = 1'b0;
+            interval = 1;
+            while (!seq_done) begin
+                @(posedge clk);
+                interval = interval + 1;
+                @(negedge clk);
+                if (interval > TIMEOUT_CYCLES) $fatal(1, "Sequential op2 timeout");
+            end
+            seq_ii = interval;
+            if (interval !== SEQUENTIAL_II) begin
+                $display("FAIL case %0d: sequential initiation interval %0d expected %0d",
+                         case_id, interval, SEQUENTIAL_II);
+                errors = errors + 1;
+            end
+            capture_sequential;
+            for (bi = 0; bi < ELEMENTS; bi = bi + 1) begin
+                if (C_seq[bi] !== saved2[bi]) begin
+                    $display("FAIL case %0d: sequential second result mismatch at %0d",
+                             case_id, bi);
+                    errors = errors + 1;
+                end
+            end
+
+            cases_run = cases_run + 1;
+        end
+    endtask
+
+    task automatic test_reset_recovery;
+        integer ri;
+        begin
+            case_id = 5000;
+            for (ri = 0; ri < ELEMENTS; ri = ri + 1) begin
+                A[ri] = ri + 2;
+                B[ri] = ri - 1;
+            end
+            pack_matrices;
+            compute_expected;
+
+            launch_systolic;
+            repeat (3) @(posedge clk);
+            @(negedge clk);
+            rst_n = 1'b0;
+            #1;
+            if (busy !== 1'b0 || done !== 1'b0) begin
+                $display("FAIL case %0d: busy/done not cleared by reset (%b/%b)",
+                         case_id, busy, done);
+                errors = errors + 1;
+            end
+            if (result !== {OUT_WIDTH{1'b0}}) begin
+                $display("FAIL case %0d: result not cleared by reset", case_id);
+                errors = errors + 1;
+            end
+            if (seq_busy !== 1'b0 || seq_done !== 1'b0) begin
+                $display("FAIL case %0d: baseline not cleared by reset", case_id);
+                errors = errors + 1;
+            end
+
+            repeat (2) @(posedge clk);
+            @(negedge clk);
+            rst_n = 1'b1;
+            repeat (2) @(posedge clk);
+
+            for (ri = 0; ri < ELEMENTS; ri = ri + 1) begin
+                A[ri] = ri * 2 + 1;
+                B[ri] = ri - 3;
+            end
+            case_id = 5001;
+            run_case(1);
+        end
+    endtask
+
+    initial begin
+        if (ARRAY_SIZE < 1 || DATA_WIDTH < 1 || ACC_WIDTH < 2*DATA_WIDTH ||
+            RANDOM_CASES < 0 || GOLDEN_CASES < 0)
+            $fatal(1, "Unsupported testbench parameters");
+
+        if ($value$plusargs("VCD=%s", wave_path)) begin
+            $dumpfile(wave_path);
+            $dumpvars(0, tb_systolic_array);
+        end
+
+        if (GOLDEN_CASES > 0) begin
+            if (!$value$plusargs("VECTORS_DIR=%s", vectors_dir))
+                $fatal(1, "GOLDEN_CASES requires +VECTORS_DIR=<dir>");
+            $readmemh({vectors_dir, "/a.hex"}, gv_a);
+            $readmemh({vectors_dir, "/b.hex"}, gv_b);
+            $readmemh({vectors_dir, "/c.hex"}, gv_c);
+        end
+
+        repeat (3) @(negedge clk);
+        rst_n = 1'b1;
+        @(negedge clk);
+
+        run_directed_cases;
+        run_golden_cases;
+        run_random_cases;
+        test_latching_and_busy_start;
+        test_back_to_back;
+        test_reset_recovery;
+
+        latency_speedup    = (SEQUENTIAL_LATENCY * 1.0) / SYSTOLIC_LATENCY;
+        throughput_speedup = (seq_ii * 1.0) / sys_ii;
+        sys_macs_per_cycle = (ARRAY_SIZE*ARRAY_SIZE*ARRAY_SIZE * 1.0) / sys_ii;
+        seq_macs_per_cycle = (ARRAY_SIZE*ARRAY_SIZE*ARRAY_SIZE * 1.0) / seq_ii;
+
+        $display("--------------------------------------------------------------");
+        $display("N=%0d DATA_WIDTH=%0d ACC_WIDTH=%0d  cases=%0d  errors=%0d",
+                 ARRAY_SIZE, DATA_WIDTH, ACC_WIDTH, cases_run, errors);
+        $display("LATENCY    systolic=%0d cycles  sequential=%0d cycles  speedup=%0.3fx",
+                 SYSTOLIC_LATENCY, SEQUENTIAL_LATENCY, latency_speedup);
+        $display("THROUGHPUT systolic=%0d cycles/op  sequential=%0d cycles/op  speedup=%0.3fx",
+                 sys_ii, seq_ii, throughput_speedup);
+        $display("MAC RATE   systolic=%0.3f MAC/cycle  sequential=%0.3f MAC/cycle",
+                 sys_macs_per_cycle, seq_macs_per_cycle);
+
+        if ($value$plusargs("REPORT=%s", report_path)) begin
+            report_fd = $fopen(report_path, "w");
+            if (report_fd == 0)
+                $fatal(1, "Cannot open report file %s", report_path);
+            $fdisplay(report_fd,
+                "array_size,data_width,acc_width,directed_cases,golden_cases,random_cases,total_cases,systolic_latency_cycles,sequential_latency_cycles,systolic_ii_cycles,sequential_ii_cycles,systolic_macs_per_cycle,sequential_macs_per_cycle,latency_speedup,throughput_speedup,status");
+            if (errors == 0)
+                $fdisplay(report_fd, "%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0.4f,%0.4f,%0.4f,%0.4f,PASS",
+                    ARRAY_SIZE, DATA_WIDTH, ACC_WIDTH, DIRECTED_CASES, GOLDEN_CASES,
+                    RANDOM_CASES, cases_run, SYSTOLIC_LATENCY, SEQUENTIAL_LATENCY,
+                    sys_ii, seq_ii, sys_macs_per_cycle, seq_macs_per_cycle,
+                    latency_speedup, throughput_speedup);
+            else
+                $fdisplay(report_fd, "%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0.4f,%0.4f,%0.4f,%0.4f,FAIL",
+                    ARRAY_SIZE, DATA_WIDTH, ACC_WIDTH, DIRECTED_CASES, GOLDEN_CASES,
+                    RANDOM_CASES, cases_run, SYSTOLIC_LATENCY, SEQUENTIAL_LATENCY,
+                    sys_ii, seq_ii, sys_macs_per_cycle, seq_macs_per_cycle,
+                    latency_speedup, throughput_speedup);
+            $fclose(report_fd);
+        end
+
+        if (errors == 0) begin
+            $display("ALL SYSTEM INTEGRATION TESTS PASSED (N=%0d, DATA_WIDTH=%0d, ACC_WIDTH=%0d)",
+                     ARRAY_SIZE, DATA_WIDTH, ACC_WIDTH);
+            $finish;
+        end else begin
+            $display("FAILED: %0d error(s) across %0d cases", errors, cases_run);
+            $fatal(1, "System integration failure");
+        end
+    end
+
+    initial begin
+        #10000000;
+        $fatal(1, "Global integration test timeout");
+    end
+
+endmodule

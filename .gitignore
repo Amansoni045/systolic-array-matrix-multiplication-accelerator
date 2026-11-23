@@ -6,20 +6,20 @@
 *.bin
 *.hex
 *_sim
-**/simulation/*_sim
-**/simulation/*.vvp
+sim/*_sim
+sim/*.vvp
 
 *.vcd
 *.fst
 *.ghw
-**/simulation/waveforms/*
-!**/simulation/waveforms/.gitkeep
+sim/waveforms/*
+!sim/waveforms/.gitkeep
 
 *.log
-**/simulation/results/*
-!**/simulation/results/.gitkeep
-# Keep the measured Phase 2 system benchmark summary as a deliverable.
-!phase2/simulation/results/system_summary.csv
+sim/results/*
+!sim/results/.gitkeep
+# Keep the measured system benchmark summary as a deliverable.
+!sim/results/system_summary.csv
 
 __pycache__/
 *.py[cod]
@@ -46,19 +46,19 @@ ehthumbs.db
 
 !.gitkeep
 
-# Keep the final voiced presentation; retain source recordings only locally.
-phase1/video/voiceovers/
-phase1/video/.build/
-phase1/video/*_normalized.wav
-phase1/video/final_voiceover.wav
-phase1/video/preview_*.jpg
-phase1/video/export_*.png
+# Video source recordings only locally.
+video/voiceovers/
+video/.build/
+video/*_normalized.wav
+video/final_voiceover.wav
+video/preview_*.jpg
+video/export_*.png
 
 # Superseded presentation exports and generated editing notes.
-phase1/video/MCA_Prototype_Captioned_1080p.mp4
-phase1/video/MCA_Captions.srt
-phase1/video/MCA_Voiceover_Guide.md
-phase1/video/MCA_Final_Edit_Notes.json
+video/MCA_Prototype_Captioned_1080p.mp4
+video/MCA_Captions.srt
+video/MCA_Voiceover_Guide.md
+video/MCA_Final_Edit_Notes.json
 
 # The PDF, LaTeX, Markdown and figures are the maintained report deliverables.
 **/report/*.html
