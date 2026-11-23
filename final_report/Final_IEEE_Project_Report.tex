@@ -43,9 +43,24 @@ To alleviate memory bandwidth pressures, H. T. Kung and C. E. Leiserson introduc
 Modern domain-specific accelerators, such as Google's Tensor Processing Unit (TPU) \cite{jouppi2017}, utilize 2D systolic arrays optimized for dense linear algebra. Systolic dataflows are generally classified into Weight-Stationary, Input-Stationary, and Output-Stationary configurations \cite{jouppi2017}. In an Output-Stationary (OS) arrangement, accumulated matrix results remain stationary inside each PE's local register throughout the compute phase, while input operands stream horizontally and vertically through the array. This strategy minimizes register switching activity, simplifies interconnect routing, and eliminates the need to route partial sums across the array during execution. Furthermore, adopting low-precision integer arithmetic (such as signed INT8 and INT16) paired with widened accumulators reflects modern edge and datacenter inference practices that maximize computational density while preventing arithmetic overflow \cite{patterson2020}.
 
 \section{Proposed Solution}
+The overall architecture of the scalable matrix multiplication system is depicted in Fig.~\ref{fig:system_block}, comparing the proposed parallel systolic array accelerator against the single-MAC sequential reference baseline.
+
+\begin{figure*}[!t]
+\centering
+\includegraphics[width=0.92\textwidth]{figures/fig_a_system_block}
+\caption{Top-level architectural block diagram comparing the scalable parameterizable systolic array accelerator (top) and the single-MAC sequential reference baseline (bottom).}
+\label{fig:system_block}
+\end{figure*}
 
 \subsection{Processing Element Architecture}
-The Processing Element (\texttt{rtl/processing\_element.v}) forms the foundational arithmetic unit of the accelerator. It is parameterized by operand bit-width (\texttt{DATA\_WIDTH}) and accumulator bit-width (\texttt{ACC\_WIDTH}), subject to the requirement $\text{ACC\_WIDTH} \ge 2 \times \text{DATA\_WIDTH}$.
+The Processing Element (\texttt{rtl/processing\_element.v}) forms the foundational arithmetic unit of the accelerator. It is parameterized by operand bit-width (\texttt{DATA\_WIDTH}) and accumulator bit-width (\texttt{ACC\_WIDTH}), subject to the requirement $\text{ACC\_WIDTH} \ge 2 \times \text{DATA\_WIDTH}$. The internal datapath and register organization of the Processing Element are shown in Fig.~\ref{fig:pe_datapath}.
+
+\begin{figure}[!t]
+\centering
+\includegraphics[width=\columnwidth]{figures/fig_b_pe_datapath}
+\caption{Processing Element (PE) internal datapath showing signed multiplier, sign-extension unit, accumulator register with priority synchronous clear, and spatial forwarding registers.}
+\label{fig:pe_datapath}
+\end{figure}
 
 The PE contains:
 \begin{enumerate}
@@ -75,10 +90,28 @@ The PE contains:
 \subsection{Scalable Systolic Array Core}
 The systolic array module (\texttt{rtl/systolic\_array.v}) instantiates an $N \times N$ grid of PEs using nested Verilog \texttt{generate} constructs. Input operands for row $r$ and column $c$ must arrive at PE($r, c$) with relative temporal skew: an operand corresponding to common index $k$ arrives at PE($r, c$) on sampling clock edge $k + r + c$.
 
+Fig.~\ref{fig:array_mesh} illustrates the interconnected $4 \times 4$ PE mesh, depicting the horizontal streaming of Matrix A, vertical streaming of Matrix B, and local accumulation of stationary partial sums within each PE.
+
+\begin{figure}[!t]
+\centering
+\includegraphics[width=\columnwidth]{figures/fig_c_array_mesh}
+\caption{A $4 \times 4$ output-stationary systolic array mesh illustrating horizontal operand forwarding for Matrix A, vertical operand forwarding for Matrix B, and local accumulation of partial sums.}
+\label{fig:array_mesh}
+\end{figure}
+
 To present a natural row-major matrix interface to external logic, the array core incorporates integrated input skewing buffers. Row lane $r$ is delayed by $r$ clock cycles using an $r$-stage register pipeline, and column lane $c$ is delayed by $c$ clock cycles using a $c$-stage register pipeline. The first lane ($r=0, c=0$) connects directly without delay. At the completion of accumulation, all $N^2$ local accumulators are mapped to a single concatenated output bus.
 
 \subsection{Matrix Controller and Execution Schedule}
-The matrix controller (\texttt{rtl/matrix\_controller.v}) governs the accelerator handshake and execution schedule. It coordinates a three-state finite state machine:
+The matrix controller (\texttt{rtl/matrix\_controller.v}) governs the accelerator handshake and execution schedule. The cycle-by-cycle execution schedule governed by the controller FSM is diagrammed in Fig.~\ref{fig:controller_schedule} for an $N=4$ configuration.
+
+\begin{figure}[!t]
+\centering
+\includegraphics[width=\columnwidth]{figures/fig_d_controller_schedule}
+\caption{Deterministic execution schedule for an $N=4$ configuration, detailing the $N$-cycle loading phase, $(2N-1)$-cycle draining phase, total compute latency of $3N-1 = 11$ clock cycles, and initiation interval of $3N = 12$ cycles.}
+\label{fig:controller_schedule}
+\end{figure}
+
+The controller coordinates a three-state finite state machine:
 \begin{enumerate}
     \item \texttt{STATE\_IDLE} (\texttt{2'd0}): The controller asserts \texttt{busy=0} and \texttt{done=0}. When \texttt{start} is asserted, the controller latches the external matrix buses \texttt{a\_flat} and \texttt{b\_flat} into internal registers \texttt{a\_latched} and \texttt{b\_latched}. Concurrently, \texttt{clear\_acc} is combinationally asserted to initialize all array accumulators, \texttt{busy} is set to 1, and the FSM transitions to \texttt{STATE\_LOAD}.
     \item \texttt{STATE\_LOAD} (\texttt{2'd1}): The controller streams $k$-slices ($k = 0, \dots, N-1$) of the latched matrices into the array lanes across $N$ consecutive clock cycles. Slicing logic drives row lane $r$ with $A[r][k]$ and column lane $c$ with $B[k][c]$, asserting \texttt{a\_valid} and \texttt{b\_valid}. Once $k = N-1$, the FSM transitions to \texttt{STATE\_DRAIN}.
@@ -121,6 +154,29 @@ L_{\text{seq}} = N^3 \quad \text{cycles}
 \end{equation}
 Its sustained initiation interval is $\text{II}_{\text{seq}} = N^3 + 1$ cycles.
 
+Table~\ref{tab:baseline_2x2_trace} provides the hand-verified cycle-by-cycle execution trace of a $2 \times 2$ matrix multiplication on the sequential baseline, demonstrating the exact 8-cycle computation for $A = \begin{pmatrix} 1 & 2 \\ 3 & 4 \end{pmatrix}$ and $B = \begin{pmatrix} 5 & 6 \\ 7 & 8 \end{pmatrix}$ producing $C = \begin{pmatrix} 19 & 22 \\ 43 & 50 \end{pmatrix}$ with $N^3 = 8$ cycles.
+
+\begin{table}[htbp]
+\caption{Cycle-by-Cycle Execution Trace for $2 \times 2$ Matrix Multiplication on Sequential Baseline}
+\label{tab:baseline_2x2_trace}
+\centering
+\setlength{\tabcolsep}{4.5pt}
+\begin{tabular}{cccccccc}
+\toprule
+Cycle & $r$ & $c$ & $k$ & $A[r][k]$ & $B[k][c]$ & Product & Accumulator / Output \\
+\midrule
+1 & 0 & 0 & 0 & 1 & 5 & 5  & 5 \\
+2 & 0 & 0 & 1 & 2 & 7 & 14 & $19 \implies C[0][0]=19$ \\
+3 & 0 & 1 & 0 & 1 & 6 & 6  & 6 \\
+4 & 0 & 1 & 1 & 2 & 8 & 16 & $22 \implies C[0][1]=22$ \\
+5 & 1 & 0 & 0 & 3 & 5 & 15 & 15 \\
+6 & 1 & 0 & 1 & 4 & 7 & 28 & $43 \implies C[1][0]=43$ \\
+7 & 1 & 1 & 0 & 3 & 6 & 18 & 18 \\
+8 & 1 & 1 & 1 & 4 & 8 & 32 & $50 \implies C[1][1]=50$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
 \section{Results and Discussion}
 
 \subsection{Experimental Methodology}
@@ -155,15 +211,38 @@ $N$ & \texttt{DATA\_WIDTH} & \texttt{ACC\_WIDTH} & \begin{tabular}{@{}c@{}}Systo
 \end{tabular}
 \end{table*}
 
+Fig.~\ref{fig:pe_waveform} illustrates the simulation timing waveform extracted directly from \texttt{sim/waveforms/pe\_8bit.vcd} for Test~1 ($3 \times 4 = 12$), confirming the strict one-cycle spatial operand forwarding delay between \texttt{a\_in} and \texttt{a\_out}.
+
+\begin{figure}[!t]
+\centering
+\includegraphics[width=\columnwidth]{figures/fig_e_pe_waveform}
+\caption{Simulation timing waveform extracted directly from \texttt{sim/waveforms/pe\_8bit.vcd} during Test~1 ($3 \times 4 = 12$), confirming the strict one-cycle spatial operand forwarding delay between \texttt{a\_in} and \texttt{a\_out} alongside synchronous accumulator clearing and valid gating.}
+\label{fig:pe_waveform}
+\end{figure}
+
 \subsection{Analytical Scaling and Latency Discussion}
 The empirical results confirm the theoretical complexity models:
 \begin{enumerate}
-    \item \textbf{Algorithmic Scaling:} While the single-MAC sequential baseline scales cubically as $\mathcal{O}(N^3)$ (requiring 8, 64, and 512 cycles for $N=2, 4,$ and $8$), the systolic array scales linearly as $\mathcal{O}(N)$ ($3N-1$ cycles, yielding 5, 11, and 23 cycles). Consequently, the latency speedup scales approximately as $\mathcal{O}(N^2 / 3)$, reaching $5.82\times$ at $N=4$ and $22.26\times$ at $N=8$.
-    \item \textbf{Sustained Throughput:} Sustained throughput grows with array dimension, operating at $N^3 / (3N) = N^2 / 3$ MACs per cycle on the systolic array versus approximately 1 MAC per cycle on the baseline. At $N=8$ and 100~MHz, the systolic array achieves 2,133.33~MMAC/s compared to 99.81~MMAC/s for the sequential engine ($21.38\times$ throughput speedup).
+    \item \textbf{Algorithmic Scaling:} While the single-MAC sequential baseline scales cubically as $\mathcal{O}(N^3)$ (requiring 8, 64, and 512 cycles for $N=2, 4,$ and $8$), the systolic array scales linearly as $\mathcal{O}(N)$ ($3N-1$ cycles, yielding 5, 11, and 23 cycles). Consequently, the latency speedup scales approximately as $\mathcal{O}(N^2 / 3)$, reaching $5.82\times$ at $N=4$ and $22.26\times$ at $N=8$. Fig.~\ref{fig:latency_scaling} plots the measured execution latencies on a logarithmic scale, validating the linear scaling $\mathcal{O}(N)$ of the systolic array ($3N-1$ cycles) against the cubic $\mathcal{O}(N^3)$ growth of the sequential baseline.
+    \item \textbf{Sustained Throughput and Speedup:} Sustained throughput grows with array dimension, operating at $N^3 / (3N) = N^2 / 3$ MACs per cycle on the systolic array versus approximately 1 MAC per cycle on the baseline. At $N=8$ and 100~MHz, the systolic array achieves 2,133.33~MMAC/s compared to 99.81~MMAC/s for the sequential engine ($21.38\times$ throughput speedup). Fig.~\ref{fig:speedup} details the resulting latency speedup across matrix dimensions, illustrating the crossover at $N \ge 2$ and the $22.26\times$ speedup at $N=8$.
     \item \textbf{Crossover Threshold:} At $N=1$, controller setup and draining overhead ($3N-1 = 2$ cycles) exceeds the single MAC calculation of the baseline (1 cycle), resulting in a speedup of $0.50\times$. For all dimensions $N \ge 2$, the systolic architecture decisively outperforms the sequential design.
     \item \textbf{Controller Evolution (Phase I vs. Phase II):} In Phase I of the project, a fixed 4$\times$4 design exhibited a 14-cycle compute latency. That schedule allocated 1 cycle for dedicated state clearing (\texttt{STATE\_CLEAR}), 4 cycles for loading, 8 cycles for draining, and 1 cycle for registered output latching ($1 + 4 + 8 + 1 = 14$). In Phase II, the parameterized controller was re-architected to assert \texttt{clear\_acc} combinationally upon detecting \texttt{start} in \texttt{STATE\_IDLE}, simultaneously latching input operands. The compute wavefront begins streaming immediately on the subsequent clock edge, compressing total latency to $3N-1$ cycles (11 cycles for $N=4$).
     \item \textbf{Precision Independence:} Configurations with extended 16-bit operands (\texttt{DATA\_WIDTH=16, ACC\_WIDTH=48}) and reduced accumulator width (\texttt{ACC\_WIDTH=16}) display identical cycle counts to the 8-bit baseline, confirming that the control path is completely decoupled from arithmetic bit-widths.
 \end{enumerate}
+
+\begin{figure}[!t]
+\centering
+\includegraphics[width=\columnwidth]{figures/fig_f_latency_scaling}
+\caption{Measured latency scaling comparing the systolic array ($3N-1$ cycles, $\mathcal{O}(N)$) against the sequential baseline ($N^3$ cycles, $\mathcal{O}(N^3)$) across matrix dimensions $N \in \{1, 2, 3, 4, 8\}$ on a logarithmic scale.}
+\label{fig:latency_scaling}
+\end{figure}
+
+\begin{figure}[!t]
+\centering
+\includegraphics[width=\columnwidth]{figures/fig_g_speedup}
+\caption{Measured latency speedup of the systolic accelerator over the sequential baseline across matrix sizes $N \in \{1, 2, 3, 4, 8\}$, highlighting the $1.0\times$ break-even threshold and peak speedup of $22.26\times$ at $N=8$.}
+\label{fig:speedup}
+\end{figure}
 
 \subsection{Comprehensive Verification Summary}
 The hardware was validated across four verification suites:
@@ -173,6 +252,15 @@ The hardware was validated across four verification suites:
     \item \textbf{System Integration Regression (\texttt{tb\_systolic\_array.v}):} Evaluated across 9 parameter configurations covering 46 test cases per configuration (8 directed cases, 31 golden-model vectors, 4 randomized cases, bus corrupt-immunity tests, back-to-back throughput tests, and mid-compute reset recovery), totaling 414 test cases. All 414 cases passed with zero mismatches.
     \item \textbf{Golden Model Unit Suite (\texttt{test\_golden\_model.py}):} 12 unit tests verifying bit-level packing, signed overflow modulo $2^{\text{ACC\_WIDTH}}$, vector file round-tripping, and mathematical equivalence against naive matrix multiplication. All 12 tests passed.
 \end{itemize}
+
+Fig.~\ref{fig:verification_summary} summarizes the complete multi-tier test suite, demonstrating 100\% pass rates across all 476 automated test vectors.
+
+\begin{figure}[!t]
+\centering
+\includegraphics[width=\columnwidth]{figures/fig_h_verification_summary}
+\caption{Summary of verification test coverage and pass rates across all five regression suites, demonstrating a 100\% pass rate across 476 automated test vectors with zero functional mismatches.}
+\label{fig:verification_summary}
+\end{figure}
 
 \section{Individual Contributions}
 The project workload and module ownership were distributed among the three team members as follows:
