@@ -54,19 +54,21 @@ The PE contains:
     \text{product} = a_{\text{in}} \times b_{\text{in}}
     \end{equation}
     producing a signed intermediate product of $2 \times \text{DATA\_WIDTH}$ bits.
-    \item \textbf{Sign-Extension Unit:} When $\text{ACC\_WIDTH} > 2 \times \text{DATA\_WIDTH}$, the product is sign-extended to \texttt{ACC\_WIDTH} bits by replicating its most significant bit:
+    \item \textbf{Sign-Extension Unit:} When $\text{ACC\_WIDTH} > 2 \times \text{DATA\_WIDTH}$, the product is sign-extended to \texttt{ACC\_WIDTH} bits by replicating its most significant bit ($p_{\text{msb}}$):
     \begin{equation}
-    \text{product\_ext} = \{\{(\text{ACC\_WIDTH} - 2\cdot\text{DATA\_WIDTH})\{p_{\text{msb}}\}\}, \text{product}\}
+    \text{product\_ext} = \big\{\{E\{p_{\text{msb}}\}\}, \, \text{product}\big\}
     \end{equation}
+    where $E = \text{ACC\_WIDTH} - 2\cdot\text{DATA\_WIDTH}$ is the extension bit-width.
     \item \textbf{Accumulator Register:} On the rising clock edge with active-low asynchronous reset (\texttt{rst\_n}), all internal registers are cleared. Synchronous accumulator clearing (\texttt{clear\_acc}) takes highest priority, resetting \texttt{acc\_out} to zero. When \texttt{clear\_acc} is deasserted and both \texttt{a\_valid\_in} and \texttt{b\_valid\_in} are asserted, the product is accumulated:
     \begin{equation}
     \text{acc\_out} \Leftarrow \text{acc\_out} + \text{product\_ext}
     \end{equation}
     If either valid signal is deasserted, the accumulator preserves its value.
-    \item \textbf{Spatial Forwarding Registers:} On each rising clock edge, operands and valid flags are registered and forwarded:
-    \begin{equation}
-    a_{\text{out}} \Leftarrow a_{\text{in}}, \quad b_{\text{out}} \Leftarrow b_{\text{in}}, \quad a_{\text{valid\_out}} \Leftarrow a_{\text{valid\_in}}, \quad b_{\text{valid\_out}} \Leftarrow b_{\text{valid\_in}}
-    \end{equation}
+    \item \textbf{Spatial Forwarding Registers:} On each rising clock edge, operands and valid flags are registered and forwarded to neighboring PEs:
+    \begin{align}
+    a_{\text{out}} &\Leftarrow a_{\text{in}}, & b_{\text{out}} &\Leftarrow b_{\text{in}} \\
+    a_{\text{valid\_out}} &\Leftarrow a_{\text{valid\_in}}, & b_{\text{valid\_out}} &\Leftarrow b_{\text{valid\_in}}
+    \end{align}
     enabling pipelined systolic communication without combinational loops.
 \end{enumerate}
 
@@ -96,13 +98,13 @@ where the additional cycle corresponds to returning to \texttt{STATE\_IDLE} befo
 \subsection{Top-Level Accelerator Module}
 The top-level module (\texttt{rtl/systolic\_array\_top.v}) structurally integrates the matrix controller and systolic array into a self-contained accelerator. Input matrices and results are exchanged over flattened row-major buses:
 \begin{itemize}
-    \item Input matrix $A$ or $B$ width: $N \times N \times \text{DATA\_WIDTH}$ bits. An element at row $r$ and column $c$ occupies slice:
+    \item Input matrix $A$ or $B$ width: $N \times N \times \text{DATA\_WIDTH}$ bits. An element at row $r$ and column $c$ occupies slice $\text{matrix}[\text{idx}_{\text{in}} +: \text{DATA\_WIDTH}]$, where:
     \begin{equation}
-    \text{matrix}[(r \cdot N + c) \cdot \text{DATA\_WIDTH} +: \text{DATA\_WIDTH}]
+    \text{idx}_{\text{in}} = (r \cdot N + c) \cdot \text{DATA\_WIDTH}
     \end{equation}
-    \item Output matrix $C$ width: $N \times N \times \text{ACC\_WIDTH}$ bits. An accumulated element at row $r$ and column $c$ occupies slice:
+    \item Output matrix $C$ width: $N \times N \times \text{ACC\_WIDTH}$ bits. An accumulated element at row $r$ and column $c$ occupies slice $\text{result}[\text{idx}_{\text{out}} +: \text{ACC\_WIDTH}]$, where:
     \begin{equation}
-    \text{result}[(r \cdot N + c) \cdot \text{ACC\_WIDTH} +: \text{ACC\_WIDTH}]
+    \text{idx}_{\text{out}} = (r \cdot N + c) \cdot \text{ACC\_WIDTH}
     \end{equation}
 \end{itemize}
 
@@ -135,9 +137,10 @@ Table~\ref{tab:system_results} details the measured latency, throughput, and spe
 \caption{Measured Performance Comparison of Systolic Accelerator vs. Sequential Baseline}
 \label{tab:system_results}
 \centering
+\setlength{\tabcolsep}{4.5pt}
 \begin{tabular}{cccrrrrrrr}
 \toprule
-$N$ & \texttt{DATA\_WIDTH} & \texttt{ACC\_WIDTH} & Systolic Lat. (cyc) & Seq. Lat. (cyc) & Lat. Speedup & Systolic II (cyc) & Seq. II (cyc) & Thr. Speedup & Status \\
+$N$ & \texttt{DATA\_WIDTH} & \texttt{ACC\_WIDTH} & \begin{tabular}{@{}c@{}}Systolic Lat.\\(cycles)\end{tabular} & \begin{tabular}{@{}c@{}}Seq. Lat.\\(cycles)\end{tabular} & \begin{tabular}{@{}c@{}}Latency\\Speedup\end{tabular} & \begin{tabular}{@{}c@{}}Systolic II\\(cycles)\end{tabular} & \begin{tabular}{@{}c@{}}Seq. II\\(cycles)\end{tabular} & \begin{tabular}{@{}c@{}}Throughput\\Speedup\end{tabular} & Status \\
 \midrule
 1 & 8  & 32 & 2  & 1   & $0.50\times$  & 3  & 2   & $0.67\times$  & PASS \\
 2 & 8  & 32 & 5  & 8   & $1.60\times$  & 6  & 9   & $1.50\times$  & PASS \\

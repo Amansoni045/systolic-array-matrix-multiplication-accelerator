@@ -74,9 +74,10 @@ A 16-bit signed multiplier produces a 16-bit signed product. This product is the
 Accumulation occurs strictly on the rising clock edge when both \texttt{a\_valid\_in} and \texttt{b\_valid\_in} are asserted. If either valid flag is low, accumulation is inhibited, holding the partial sum constant. When the synchronous clear signal \texttt{clear\_acc} is asserted, \texttt{acc\_out} resets to \texttt{32'sd0} on the rising clock edge, overriding any incoming operands.
 
 Concurrently, the PE buffers operands into internal pipeline registers:
-\begin{equation}
-a_{\text{out}} \Leftarrow a_{\text{in}}, \quad b_{\text{out}} \Leftarrow b_{\text{in}}, \quad a_{\text{v\_out}} \Leftarrow a_{\text{v\_in}}, \quad b_{\text{v\_out}} \Leftarrow b_{\text{v\_in}}
-\end{equation}
+\begin{align}
+a_{\text{out}} &\Leftarrow a_{\text{in}}, & b_{\text{out}} &\Leftarrow b_{\text{in}} \\
+a_{\text{v\_out}} &\Leftarrow a_{\text{v\_in}}, & b_{\text{v\_out}} &\Leftarrow b_{\text{v\_in}}
+\end{align}
 This forwards operand $A$ horizontally to the east neighbor PE and operand $B$ vertically to the south neighbor PE on the subsequent clock cycle. The active-low asynchronous reset \texttt{rst\_n} clears all internal registers, valid signals, and accumulators.
 
 \subsection{Systolic Array Core and Internal Skewing}
@@ -102,7 +103,7 @@ This internal skewing eliminates external pre-processing buffers and allows unsk
 \label{fig:fsm}
 \end{figure}
 
-\begin{table}[t]
+\begin{table*}[t]
 \caption{Matrix Controller FSM States and Hardware Schedule}
 \label{tab:fsm}
 \centering
@@ -121,7 +122,7 @@ This internal skewing eliminates external pre-processing buffers and allows unsk
 13 & IDLE  & 0 & 0 & 4'b0000 & - & Latch result; \texttt{done}=1 \\
 \bottomrule
 \end{tabular}
-\end{table}
+\end{table*}
 
 \subsection{Matrix Controller and Execution Schedule}
 The Matrix Controller (\texttt{rtl/matrix\_controller.v}) implements a 4-state Mealy/Moore FSM:
@@ -170,7 +171,7 @@ Verification was conducted using Icarus Verilog 13.0 and GTKWave across four tie
 \label{fig:pe_wave}
 \end{figure}
 
-\begin{table}[t]
+\begin{table*}[t]
 \caption{Verified Matrix Multiplication Test Scenarios (Sample Results)}
 \label{tab:results}
 \centering
@@ -190,7 +191,7 @@ Result Stability & Hold output across 50 idle cycles & Stable & \textbf{PASS} \\
 Random Vectors & 40 randomized INT8 test vectors & 14 cycles & \textbf{PASS} \\
 \bottomrule
 \end{tabular}
-\end{table}
+\end{table*}
 
 Table~\ref{tab:results} summarizes the verified test scenarios. For the known positive test (Test 2), input matrix $A$ (elements $1$ to $16$) and matrix $B$ (elements $16$ down to $1$) yielded the exact expected product:
 \begin{equation}
