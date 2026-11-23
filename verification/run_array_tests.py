@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Run Member 2's array regressions; requires Icarus Verilog on PATH.
 
-Run from any working directory. Generated files stay in ignored simulation/results
-and simulation/waveforms directories. No other member's sources are modified.
+Run from any working directory. Generated files stay in ignored sim/results
+and sim/waveforms directories. No other member's sources are modified.
 """
 import argparse
 import csv
@@ -11,9 +11,9 @@ import subprocess
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[2]
-RESULTS = ROOT / 'phase2/simulation/results'
-WAVES = ROOT / 'phase2/simulation/waveforms'
+ROOT = Path(__file__).resolve().parents[1]
+RESULTS = ROOT / 'sim' / 'results'
+WAVES = ROOT / 'sim' / 'waveforms'
 CONFIGS = (
     (2, 8, 32), (4, 8, 32), (8, 8, 32),
     (2, 16, 48), (4, 16, 48), (8, 16, 48),
@@ -58,8 +58,8 @@ def main():
                    '-P', f'tb_systolic_array_core.DATA_WIDTH={data_width}',
                    '-P', f'tb_systolic_array_core.ACC_WIDTH={acc_width}',
                    '-P', f'tb_systolic_array_core.RANDOM_CASES={args.random_cases}',
-                   '-o', str(executable), 'phase2/rtl/processing_element.v',
-                   'phase2/rtl/systolic_array.v', 'phase2/testbench/tb_systolic_array_core.v']
+                   '-o', str(executable), 'rtl/processing_element.v',
+                   'rtl/systolic_array.v', 'testbench/tb_systolic_array_core.v']
         run_command(command, RESULTS / f'{name}_compile.log', 60)
         command = ['vvp', str(executable), f'+REPORT={report}']
         if args.waveforms:

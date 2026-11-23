@@ -25,7 +25,7 @@ DEFAULT_SIZE = 4
 DEFAULT_DATA_WIDTH = 8
 DEFAULT_ACC_WIDTH = 32
 DEFAULT_VECTORS_DIR = (
-    Path(__file__).resolve().parents[1] / "simulation" / "results" / "golden_vectors"
+    Path(__file__).resolve().parents[1] / "sim" / "results" / "golden_vectors"
 )
 
 Matrix = list[list[int]]

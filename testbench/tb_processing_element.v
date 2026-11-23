@@ -49,9 +49,9 @@ module tb_processing_element;
 
     initial begin
         if (DATA_WIDTH == 8)
-            $dumpfile("phase2/simulation/waveforms/pe_8bit.vcd");
+            $dumpfile("sim/waveforms/pe_8bit.vcd");
         else
-            $dumpfile("phase2/simulation/waveforms/pe_16bit.vcd");
+            $dumpfile("sim/waveforms/pe_16bit.vcd");
         $dumpvars(0, tb_processing_element);
 
         clk = 0;

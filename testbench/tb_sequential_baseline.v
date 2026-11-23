@@ -132,13 +132,13 @@ module tb_sequential_baseline;
 
     initial begin
         if (DATA_WIDTH == 16)
-            $dumpfile("phase2/simulation/waveforms/seq_baseline_4x4_16bit.vcd");
+            $dumpfile("sim/waveforms/seq_baseline_4x4_16bit.vcd");
         else if (ARRAY_SIZE == 2)
-            $dumpfile("phase2/simulation/waveforms/seq_baseline_2x2.vcd");
+            $dumpfile("sim/waveforms/seq_baseline_2x2.vcd");
         else if (ARRAY_SIZE == 4)
-            $dumpfile("phase2/simulation/waveforms/seq_baseline_4x4.vcd");
+            $dumpfile("sim/waveforms/seq_baseline_4x4.vcd");
         else
-            $dumpfile("phase2/simulation/waveforms/seq_baseline_8x8.vcd");
+            $dumpfile("sim/waveforms/seq_baseline_8x8.vcd");
         $dumpvars(0, tb_sequential_baseline);
 
         clk = 0;

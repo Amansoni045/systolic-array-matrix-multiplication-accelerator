@@ -13,7 +13,7 @@ For every configuration this runner:
    formulas and writes a CSV performance summary.
 
 Requires ``iverilog`` and ``vvp`` on PATH.  Generated artifacts stay in the
-ignored ``phase2/simulation`` tree.
+ignored ``sim`` tree.
 """
 
 from __future__ import annotations
@@ -25,12 +25,12 @@ import subprocess
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[2]
-VERIFICATION = ROOT / "phase2" / "verification"
-RESULTS = ROOT / "phase2" / "simulation" / "results"
-WAVES = ROOT / "phase2" / "simulation" / "waveforms"
-RTL = ROOT / "phase2" / "rtl"
-TESTBENCH = ROOT / "phase2" / "testbench"
+ROOT = Path(__file__).resolve().parents[1]
+VERIFICATION = ROOT / "verification"
+RESULTS = ROOT / "sim" / "results"
+WAVES = ROOT / "sim" / "waveforms"
+RTL = ROOT / "rtl"
+TESTBENCH = ROOT / "testbench"
 
 sys.path.insert(0, str(VERIFICATION))
 import golden_model as gm  # noqa: E402
