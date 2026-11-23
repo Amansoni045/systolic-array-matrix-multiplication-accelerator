@@ -160,7 +160,7 @@ Table~\ref{tab:baseline_2x2_trace} provides the hand-verified cycle-by-cycle exe
 \caption{Cycle-by-Cycle Execution Trace for $2 \times 2$ Matrix Multiplication on Sequential Baseline}
 \label{tab:baseline_2x2_trace}
 \centering
-\setlength{\tabcolsep}{4.5pt}
+\resizebox{\columnwidth}{!}{%
 \begin{tabular}{cccccccc}
 \toprule
 Cycle & $r$ & $c$ & $k$ & $A[r][k]$ & $B[k][c]$ & Product & Accumulator / Output \\
@@ -174,7 +174,8 @@ Cycle & $r$ & $c$ & $k$ & $A[r][k]$ & $B[k][c]$ & Product & Accumulator / Output
 7 & 1 & 1 & 0 & 3 & 6 & 18 & 18 \\
 8 & 1 & 1 & 1 & 4 & 8 & 32 & $50 \implies C[1][1]=50$ \\
 \bottomrule
-\end{tabular}
+\end{tabular}%
+}
 \end{table}
 
 \section{Results and Discussion}
