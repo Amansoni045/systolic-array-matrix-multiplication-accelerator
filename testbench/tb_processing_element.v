@@ -46,6 +46,8 @@ module tb_processing_element;
     reg signed [DATA_WIDTH-1:0] min_val;
     reg signed [DATA_WIDTH-1:0] max_val;
     reg signed [ACC_WIDTH-1:0] exp_boundary;
+    reg signed [ACC_WIDTH-1:0] exp_wrap;
+    integer wrap_step;
 
     initial begin
         if (DATA_WIDTH == 8)
@@ -345,9 +347,34 @@ module tb_processing_element;
 
         $display("PASS: Test 13 - Signed boundary values");
 
+        clear_acc = 1'b1;
+        @(negedge clk);
+        clear_acc = 1'b0;
+
+        exp_wrap = {ACC_WIDTH{1'b0}};
+        a_in = min_val;
+        b_in = min_val;
+        a_valid_in = 1'b1;
+        b_valid_in = 1'b1;
+
+        for (wrap_step = 0; wrap_step < 131073; wrap_step = wrap_step + 1) begin
+            exp_wrap = exp_wrap + ($signed(min_val) * $signed(min_val));
+            @(negedge clk);
+        end
+
+        a_valid_in = 1'b0;
+        b_valid_in = 1'b0;
+
+        $display("Test 14: acc_out = %0d, exp_wrap = %0d", acc_out, exp_wrap);
+
+        if (acc_out !== exp_wrap)
+            $fatal(1, "Test 14 Failed: Accumulator overflow wrap mismatch! Expected %0d, got %0d", exp_wrap, acc_out);
+
+        $display("PASS: Test 14 - Accumulator overflow wraps (two's complement)");
+
         @(negedge clk);
         $display("========================================");
-        $display("ALL 13 PE TESTS PASSED SUCCESSFULLY (DATA_WIDTH=%0d, ACC_WIDTH=%0d)", DATA_WIDTH, ACC_WIDTH);
+        $display("ALL 14 PE TESTS PASSED SUCCESSFULLY (DATA_WIDTH=%0d, ACC_WIDTH=%0d)", DATA_WIDTH, ACC_WIDTH);
         $display("========================================");
         $finish;
     end
