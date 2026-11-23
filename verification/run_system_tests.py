@@ -1,21 +1,3 @@
-#!/usr/bin/env python3
-"""End-to-end regression and performance benchmark for the Phase II accelerator.
-
-For every configuration this runner:
-
-1. generates directed + random test vectors with the Python golden model and
-   re-verifies the expected products before they are handed to RTL;
-2. compiles the parameterized controller, array, top level, sequential baseline
-   and ``tb_systolic_array`` with Icarus Verilog;
-3. runs the integration testbench, which checks arithmetic, input latching,
-   start/busy/done protocol, back-to-back throughput and reset recovery;
-4. validates the measured latency/initiation interval against the architectural
-   formulas and writes a CSV performance summary.
-
-Requires ``iverilog`` and ``vvp`` on PATH.  Generated artifacts stay in the
-ignored ``sim`` tree.
-"""
-
 from __future__ import annotations
 
 import argparse
@@ -33,19 +15,18 @@ RTL = ROOT / "rtl"
 TESTBENCH = ROOT / "testbench"
 
 sys.path.insert(0, str(VERIFICATION))
-import golden_model as gm  # noqa: E402
+import golden_model as gm
 
-# (ARRAY_SIZE, DATA_WIDTH, ACC_WIDTH)
 CONFIGS = (
-    (1, 8, 32),   # smallest legal grid: no skew stages
+    (1, 8, 32),
     (2, 8, 32),
-    (3, 8, 32),   # non-power-of-two grid
-    (4, 8, 32),   # Phase 1 geometry
-    (8, 8, 32),   # scaled baseline
+    (3, 8, 32),
+    (4, 8, 32),
+    (8, 8, 32),
     (2, 16, 32),
-    (4, 16, 48),  # extended precision
-    (4, 8, 16),   # minimum legal accumulator: wraparound
-    (8, 16, 48),  # scaled extended precision
+    (4, 16, 48),
+    (4, 8, 16),
+    (8, 16, 48),
 )
 
 RTL_SOURCES = (
@@ -56,7 +37,6 @@ RTL_SOURCES = (
     RTL / "sequential_matmul_baseline.v",
 )
 TB_SOURCE = TESTBENCH / "tb_systolic_array.v"
-
 
 def run_command(command, log: Path, timeout: int, cwd: Path = ROOT) -> str:
     completed = subprocess.run(
@@ -76,9 +56,7 @@ def run_command(command, log: Path, timeout: int, cwd: Path = ROOT) -> str:
         )
     return completed.stdout
 
-
 def golden_unit_tests(log: Path) -> None:
-    """Run the Python golden-model unit tests before touching the RTL."""
     output = run_command(
         [sys.executable, "-m", "unittest", "test_golden_model", "-v"],
         log,
@@ -88,10 +66,8 @@ def golden_unit_tests(log: Path) -> None:
     if "OK" not in output:
         raise RuntimeError("Golden-model unit tests did not report OK")
 
-
 def build_vectors(size: int, data_width: int, acc_width: int, random_cases: int,
                   seed: int, directory: Path) -> list[gm.Vector]:
-    """Generate vectors and independently confirm every expected product."""
     vectors = gm.generate_vectors(size, data_width, acc_width, random_cases, seed)
     for name, A, B, C in vectors:
         recomputed = gm.matmul(A, B, data_width, acc_width)
@@ -107,10 +83,8 @@ def build_vectors(size: int, data_width: int, acc_width: int, random_cases: int,
     )
     return vectors
 
-
 def validate_report(row: dict[str, str], size: int, data_width: int, acc_width: int,
                     golden_cases: int, random_cases: int) -> dict[str, float]:
-    """Check that the RTL measurements match the architectural schedule."""
     expected = {
         "array_size": size,
         "data_width": data_width,
@@ -135,7 +109,6 @@ def validate_report(row: dict[str, str], size: int, data_width: int, acc_width: 
         "latency_speedup": sequential_latency / systolic_latency,
         "throughput_speedup": sequential_ii / systolic_ii,
     }
-
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
@@ -280,7 +253,6 @@ def main() -> int:
     print(f"\nAll {len(summary_rows)} configurations passed. Summary: "
           f"{summary_path.relative_to(ROOT)}")
     return 0
-
 
 if __name__ == "__main__":
     try:

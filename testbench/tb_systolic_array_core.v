@@ -1,6 +1,5 @@
 `timescale 1ns/1ps
 
-// Array-only verification; no controller, top-level or baseline is required.
 module tb_systolic_array_core;
     parameter ARRAY_SIZE = 4;
     parameter DATA_WIDTH = 8;
@@ -40,8 +39,6 @@ module tb_systolic_array_core;
     integer report_file;
     string report_path, wave_path;
 
-    // External slot s is consumed at PE(r,c) on edge s+r+c.
-    // This oracle uses only the input history, never the DUT interconnect.
     task tick;
         integer r, c, slot, index;
         reg signed [2*DATA_WIDTH-1:0] product;
@@ -65,7 +62,7 @@ module tb_systolic_array_core;
                         if (slot >= 0) begin
                             if (history_av[slot][r] && history_bv[slot][c]) begin
                                 product = history_a[slot][r]*history_b[slot][c];
-                                extended_product = product; // signed extension
+                                extended_product = product;
                                 expected[ARRAY_SIZE*r+c] = expected[ARRAY_SIZE*r+c]+extended_product;
                             end
                         end
@@ -91,8 +88,6 @@ module tb_systolic_array_core;
         end
     endtask
 
-    // Check forwarding as well as sums: invalid masks must travel independently,
-    // including traffic where only one operand is valid and no MAC takes place.
     genvar gr, gc;
     generate
         for (gr = 0; gr < ARRAY_SIZE; gr = gr+1) begin : monitor_rows
@@ -100,7 +95,7 @@ module tb_systolic_array_core;
                 integer source_slot;
                 reg expected_av, expected_bv;
                 always @(posedge clk) begin
-                    #2; // after tick's scoreboard and DUT nonblocking updates
+                    #2;
                     source_slot = cycle-1-gr-gc;
                     expected_av = 0;
                     expected_bv = 0;
@@ -136,7 +131,7 @@ module tb_systolic_array_core;
         begin
             a_valid_in = 0; b_valid_in = 0;
             for (edge_index = 0; edge_index < count; edge_index = edge_index+1) begin
-                // Invalid data is deliberately nonzero and changing.
+
                 a_in = ~a_in; b_in = ~b_in;
                 tick;
             end
@@ -163,7 +158,7 @@ module tb_systolic_array_core;
                     for (k = 0; k < ARRAY_SIZE; k = k+1) begin
                         product = mat_a[r*ARRAY_SIZE+k]*mat_b[k*ARRAY_SIZE+c];
                         extended_product = product;
-                        total = total+extended_product; // modulo 2**ACC_WIDTH
+                        total = total+extended_product;
                     end
                     if ($signed(acc_out[(r*ARRAY_SIZE+c)*ACC_WIDTH +: ACC_WIDTH]) !== total)
                         $fatal(1, "Matrix case %0d mismatch at (%0d,%0d)", test_id, r, c);
@@ -176,8 +171,7 @@ module tb_systolic_array_core;
         input integer with_bubbles;
         integer r, k, bubbles;
         begin
-            // Caller clears first; this allows a new first term immediately
-            // after the clear edge, with no extra warmup or reset cycle.
+
             bubbles = 0;
             for (k = 0; k < ARRAY_SIZE; k = k+1) begin
                 if (with_bubbles && (k%2 == 0)) begin
@@ -196,14 +190,13 @@ module tb_systolic_array_core;
             if (cycle !== CORE_EDGES+bubbles)
                 $fatal(1, "Core latency expected %0d sampling edges, got %0d", CORE_EDGES+bubbles, cycle);
             check_matrix;
-            // All-ones products change the final PE on every contributing MAC,
-            // so its last transition measures the actual final arrival edge.
+
             if (test_id == 7 && last_result_change !== CORE_EDGES-1)
                 $fatal(1, "Final PE completed on edge %0d, expected %0d",
                     last_result_change, CORE_EDGES-1);
             if (with_bubbles) bubble_edges = cycle;
             else plain_edges = cycle;
-            idle_edges(3); // final output retention; no extra valid operands
+            idle_edges(3);
         end
     endtask
 
@@ -218,7 +211,7 @@ module tb_systolic_array_core;
         max_val = {1'b0, {(DATA_WIDTH-1){1'b1}}};
         tick;
         rst_n = 1;
-        // Directed matrix cases followed by deterministic full-width random data.
+
         for (test_id = 0; test_id < 8+RANDOM_CASES; test_id = test_id+1) begin
             clear_array;
             for (i = 0; i < ELEMENTS; i = i+1) begin
@@ -237,12 +230,11 @@ module tb_systolic_array_core;
                     default: begin mat_a[i] = $random(seed); mat_b[i] = $random(seed); end
                 endcase
             end
-            // Explicit no-bubble all-ones case verifies the last MAC's arrival.
+
             stream_matrix(test_id >= 8 && test_id%2 == 0);
         end
         $display("PASS: %0d matrices incl. boundaries, overflow wrapping and bubbles", matrices_checked);
 
-        // A-only and B-only traffic must forward without changing any sum.
         clear_array;
         a_in = {ARRAY_SIZE{max_val}}; b_in = {ARRAY_SIZE{min_val}};
         a_valid_in = {ARRAY_SIZE{1'b1}}; b_valid_in = 0;
@@ -265,7 +257,6 @@ module tb_systolic_array_core;
         idle_edges(DRAIN_EDGES);
         $display("PASS: independent masks, every PE's forwarding and valid paths");
 
-        // Interrupt a populated pipeline. Hold clear while all lanes stay valid.
         a_valid_in = {ARRAY_SIZE{1'b1}}; b_valid_in = {ARRAY_SIZE{1'b1}};
         repeat (ARRAY_SIZE+1) tick;
         clear_acc = 1;
@@ -277,7 +268,7 @@ module tb_systolic_array_core;
 
         a_valid_in = {ARRAY_SIZE{1'b1}}; b_valid_in = {ARRAY_SIZE{1'b1}};
         repeat (ARRAY_SIZE+1) tick;
-        #2 rst_n = 0; // deliberately away from the rising edge
+        #2 rst_n = 0;
         #1;
         if (acc_out !== 0) $fatal(1, "Asynchronous accumulator reset failed");
         tick;
@@ -286,7 +277,6 @@ module tb_systolic_array_core;
         if (acc_out !== 0) $fatal(1, "Reset leaked cancelled operands");
         $display("PASS: mid-flight asynchronous reset and pipeline flush");
 
-        // Different complete operations separated by just one clear edge.
         for (n = 0; n < 2; n = n+1) begin
             a_valid_in = {ARRAY_SIZE{1'b1}}; b_valid_in = {ARRAY_SIZE{1'b1}};
             clear_array;

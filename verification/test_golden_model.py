@@ -1,6 +1,3 @@
-#!/usr/bin/env python3
-"""Unit tests for the parameterized golden model (no HDL simulator needed)."""
-
 from __future__ import annotations
 
 import random
@@ -10,8 +7,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-import golden_model as gm  # noqa: E402
-
+import golden_model as gm
 
 def naive_matmul(A, B, data_width, acc_width):
     n = len(A)
@@ -23,7 +19,6 @@ def naive_matmul(A, B, data_width, acc_width):
                 acc += gm.wrap_signed(A[r][k], data_width) * gm.wrap_signed(B[k][c], data_width)
             C[r][c] = gm.wrap_signed(acc, acc_width)
     return C
-
 
 class GoldenModelTests(unittest.TestCase):
     def test_matmul_matches_naive_across_sizes(self):
@@ -42,7 +37,6 @@ class GoldenModelTests(unittest.TestCase):
                     )
 
     def test_accumulator_wraparound_matches_rtl(self):
-        # 4 * 127 * 127 = 64516, which wraps to -1020 in a signed 16-bit accumulator.
         A = [[127] * 4 for _ in range(4)]
         B = [[127] * 4 for _ in range(4)]
         C = gm.matmul(A, B, data_width=8, acc_width=16)
@@ -56,7 +50,6 @@ class GoldenModelTests(unittest.TestCase):
         self.assertEqual(C, [[gm.wrap_signed(16129, 16), 0], [0, gm.wrap_signed(16129, 16)]])
 
     def test_inputs_are_wrapped_to_data_width(self):
-        # 300 wraps to 44 as an 8-bit signed value, so 44 * 2 = 88.
         self.assertEqual(gm.matmul([[300]], [[2]], data_width=8, acc_width=32), [[88]])
         self.assertEqual(gm.matmul([[-129]], [[1]], data_width=8, acc_width=32), [[127]])
 
@@ -154,7 +147,6 @@ class GoldenModelTests(unittest.TestCase):
                         naive_matmul(A, B, data_width, acc_width),
                         msg=name,
                     )
-
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

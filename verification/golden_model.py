@@ -1,18 +1,3 @@
-#!/usr/bin/env python3
-"""Golden model and test-vector generator for the Phase II systolic array.
-
-The model matches the RTL bit-for-bit:
-
-* operand values are interpreted as ``DATA_WIDTH``-bit two's complement;
-* products are exact signed integers (``2*DATA_WIDTH`` bits);
-* accumulation wraps modulo ``2**ACC_WIDTH``.
-
-Everything is parameterized by the square matrix size ``N`` (``ARRAY_SIZE``),
-the signed operand width and the signed accumulator width.  The module can be
-imported by the regression runner or used from the command line to generate
-``$readmemh``-compatible vectors and to verify an RTL result dump.
-"""
-
 from __future__ import annotations
 
 import argparse
@@ -31,16 +16,13 @@ DEFAULT_VECTORS_DIR = (
 Matrix = list[list[int]]
 Vector = tuple[str, Matrix, Matrix, Matrix]
 
-
 def wrap_signed(value: int, width: int) -> int:
-    """Return *value* as a signed two's-complement integer of *width* bits."""
     if width < 1:
         raise ValueError("width must be at least 1")
     mask = (1 << width) - 1
     value &= mask
     sign_bit = 1 << (width - 1)
     return value - (1 << width) if value & sign_bit else value
-
 
 def _validate_params(size: int, data_width: int, acc_width: int) -> None:
     if size < 1:
@@ -49,7 +31,6 @@ def _validate_params(size: int, data_width: int, acc_width: int) -> None:
         raise ValueError("data_width must be at least 1")
     if acc_width < 2 * data_width:
         raise ValueError("acc_width must be at least 2*data_width")
-
 
 def _validate_square(matrix: Sequence[Sequence[int]], name: str) -> int:
     if not matrix:
@@ -60,23 +41,12 @@ def _validate_square(matrix: Sequence[Sequence[int]], name: str) -> int:
             raise ValueError(f"{name} must be square (got {size}x{len(row)})")
     return size
 
-
 def matmul(
     A: Sequence[Sequence[int]],
     B: Sequence[Sequence[int]],
     data_width: int = DEFAULT_DATA_WIDTH,
     acc_width: int = DEFAULT_ACC_WIDTH,
 ) -> Matrix:
-    """Compute ``C = A x B`` with RTL-equivalent signed wrapping.
-
-    Args:
-        A, B: square list-of-lists matrices with the same dimension.
-        data_width: signed operand width (inputs are wrapped to this width).
-        acc_width: signed accumulator width (sums wrap modulo 2**acc_width).
-
-    Returns:
-        A new square list-of-lists matrix of signed accumulator values.
-    """
     _validate_params(len(A), data_width, acc_width)
     size = _validate_square(A, "A")
     if _validate_square(B, "B") != size:
@@ -93,9 +63,7 @@ def matmul(
             result[r][c] = acc
     return result
 
-
 def pack_matrix(matrix: Sequence[Sequence[int]], data_width: int) -> int:
-    """Pack a row-major square matrix into one integer (element 0 is the LSB)."""
     size = _validate_square(matrix, "matrix")
     mask = (1 << data_width) - 1
     packed = 0
@@ -104,9 +72,7 @@ def pack_matrix(matrix: Sequence[Sequence[int]], data_width: int) -> int:
             packed |= (matrix[r][c] & mask) << (data_width * (r * size + c))
     return packed
 
-
 def unpack_matrix(packed: int, size: int, width: int) -> Matrix:
-    """Inverse of :func:`pack_matrix` for a signed ``width``-bit field."""
     _validate_params(size, width, 2 * width)
     mask = (1 << width) - 1
     matrix: Matrix = [[0] * size for _ in range(size)]
@@ -115,13 +81,10 @@ def unpack_matrix(packed: int, size: int, width: int) -> Matrix:
         matrix[index // size][index % size] = wrap_signed(field, width)
     return matrix
 
-
 def matrix_to_hex(matrix: Sequence[Sequence[int]], width: int) -> str:
-    """Return the row-major packed matrix as a zero-padded hex string."""
     size = _validate_square(matrix, "matrix")
     digits = (size * size * width + 3) // 4
     return f"{pack_matrix(matrix, width):0{digits}x}"
-
 
 def verify_result_hex(
     result_hex: str,
@@ -131,12 +94,6 @@ def verify_result_hex(
     acc_width: int = DEFAULT_ACC_WIDTH,
     verbose: bool = True,
 ) -> bool:
-    """Compare a flat row-major RTL result (hex) against the golden model.
-
-    ``result_hex`` uses the same convention as the RTL bus: ``C[0][0]`` is the
-    least-significant ``acc_width`` bits.  Both 0x-prefixed and plain hex are
-    accepted, as are underscores and whitespace.
-    """
     size = _validate_square(A, "A")
     if _validate_square(B, "B") != size:
         raise ValueError("A and B must have the same dimensions")
@@ -162,10 +119,8 @@ def verify_result_hex(
                     print(f"  MISMATCH C[{r}][{c}]: expected {expected[r][c]}, got {got}")
     return ok
 
-
 def _format_matrix(matrix: Sequence[Sequence[int]]) -> list[str]:
     return ["  ".join(str(value) for value in row) for row in matrix]
-
 
 def write_vector(
     path: str | Path,
@@ -176,7 +131,6 @@ def write_vector(
     acc_width: int = DEFAULT_ACC_WIDTH,
     name: str | None = None,
 ) -> None:
-    """Write one human-readable test vector with a small metadata header."""
     size = _validate_square(A, "A")
     if _validate_square(B, "B") != size:
         raise ValueError("A and B must have the same dimensions")
@@ -201,9 +155,7 @@ def write_vector(
     lines.extend(_format_matrix(C))
     Path(path).write_text("\n".join(lines) + "\n")
 
-
 def read_vector(path: str | Path) -> tuple[Matrix, Matrix, Matrix, dict[str, str]]:
-    """Read a vector written by :func:`write_vector` (metadata is optional)."""
     meta: dict[str, str] = {}
     sections: dict[str, Matrix] = {"A": [], "B": [], "Expected C": []}
     current: str | None = None
@@ -234,17 +186,14 @@ def read_vector(path: str | Path) -> tuple[Matrix, Matrix, Matrix, dict[str, str
         raise ValueError(f"{path}: expected C has the wrong dimension")
     return A, B, C, meta
 
-
 def _hex_digits(width: int) -> int:
     return (width + 3) // 4
-
 
 def write_readmemh(
     path: str | Path,
     matrices: Iterable[Sequence[Sequence[int]]],
     width: int,
 ) -> None:
-    """Flatten row-major matrices into a ``$readmemh`` file, one word per line."""
     digits = _hex_digits(width)
     mask = (1 << width) - 1
     lines: list[str] = []
@@ -255,7 +204,6 @@ def write_readmemh(
                 lines.append(f"{matrix[r][c] & mask:0{digits}x}")
     Path(path).write_text("\n".join(lines) + "\n")
 
-
 def write_rtl_vectors(
     directory: str | Path,
     A_cases: Sequence[Sequence[Sequence[int]]],
@@ -264,7 +212,6 @@ def write_rtl_vectors(
     data_width: int = DEFAULT_DATA_WIDTH,
     acc_width: int = DEFAULT_ACC_WIDTH,
 ) -> tuple[Path, Path, Path]:
-    """Write ``a.hex``, ``b.hex`` and ``c.hex`` consumed by the integration TB."""
     if not (len(A_cases) == len(B_cases) == len(C_cases)):
         raise ValueError("A/B/C case lists must have the same length")
     out_dir = Path(directory)
@@ -275,9 +222,7 @@ def write_rtl_vectors(
     write_readmemh(c_path, C_cases, acc_width)
     return a_path, b_path, c_path
 
-
 def directed_cases(size: int, data_width: int, acc_width: int) -> list[tuple[str, Matrix, Matrix]]:
-    """Return deterministic corner-case matrix pairs for any square size."""
     _validate_params(size, data_width, acc_width)
     n = size
     lo = -(1 << (data_width - 1))
@@ -326,9 +271,7 @@ def directed_cases(size: int, data_width: int, acc_width: int) -> list[tuple[str
         ("identity_accumulator", build(lambda r, c: (2 if r == c else 0), None), ramp),
     ]
 
-    # Ensure every pair is dimensionally valid even for N=1.
     return [(name, A, B) for name, A, B in pairs if len(A) == n and len(B) == n]
-
 
 def generate_vectors(
     size: int = DEFAULT_SIZE,
@@ -337,7 +280,6 @@ def generate_vectors(
     count: int = 20,
     seed: int = 42,
 ) -> list[Vector]:
-    """Build directed plus deterministic random cases as ``(name, A, B, C)``."""
     _validate_params(size, data_width, acc_width)
     if count < 0:
         raise ValueError("count must be nonnegative")
@@ -355,7 +297,6 @@ def generate_vectors(
         vectors.append((f"random_{index:03d}", A, B, matmul(A, B, data_width, acc_width)))
     return vectors
 
-
 def generate_test_vectors(
     size: int = DEFAULT_SIZE,
     data_width: int = DEFAULT_DATA_WIDTH,
@@ -364,7 +305,6 @@ def generate_test_vectors(
     seed: int = 42,
     out_dir: str | Path = DEFAULT_VECTORS_DIR,
 ) -> list[Vector]:
-    """Generate vectors on disk and return them for immediate re-verification."""
     vectors = generate_vectors(size, data_width, acc_width, count, seed)
     out_path = Path(out_dir)
     out_path.mkdir(parents=True, exist_ok=True)
@@ -382,13 +322,11 @@ def generate_test_vectors(
     )
     return vectors
 
-
 def _positive_int(text: str) -> int:
     value = int(text)
     if value < 1:
         raise argparse.ArgumentTypeError("value must be at least 1")
     return value
-
 
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
@@ -445,7 +383,6 @@ def main(argv: Sequence[str] | None = None) -> int:
     print(f"\nGenerated {len(vectors)} vectors in {args.out_dir}")
     print(f"Golden self-check: {len(vectors) - failures} PASSED, {failures} FAILED")
     return 0 if failures == 0 else 1
-
 
 if __name__ == "__main__":
     sys.exit(main())

@@ -1,20 +1,5 @@
 `timescale 1ns/1ps
 
-// Parameterized matrix controller for the Phase II systolic array.
-//
-// The controller owns the complete start/busy/done protocol and the
-// LOAD/DRAIN schedule of the N x N output-stationary array:
-//
-//   * on the cycle where `start` is accepted, the input matrices are
-//     latched and the array accumulators/input skew buffers are cleared;
-//   * LOAD  = ARRAY_SIZE cycles stream k = 0 .. N-1 into the array;
-//   * DRAIN = 2*ARRAY_SIZE-1 cycles wait for the final MAC wavefront to
-//     reach PE(N-1,N-1) and for the accumulator bus to settle.
-//
-// Because the array skews lane r/c by r+c cycles, external slot k reaches
-// PE(r,c) at edge k+r+c.  The last accumulation therefore happens at edge
-// 1 + 3*(N-1), and the final accumulator value is captured one edge later.
-// Measured start-to-done latency is 3*N-1 cycles for every ARRAY_SIZE.
 module matrix_controller #(
     parameter ARRAY_SIZE = 4,
     parameter DATA_WIDTH = 8,
@@ -51,7 +36,6 @@ module matrix_controller #(
     localparam [1:0] STATE_LOAD  = 2'd1;
     localparam [1:0] STATE_DRAIN = 2'd2;
 
-    // synthesis translate_off
     initial begin
         if (ARRAY_SIZE < 1)
             $fatal(1, "matrix_controller requires ARRAY_SIZE >= 1");
@@ -60,24 +44,15 @@ module matrix_controller #(
         if (ACC_WIDTH < 2 * DATA_WIDTH)
             $fatal(1, "matrix_controller requires ACC_WIDTH >= 2*DATA_WIDTH");
     end
-    // synthesis translate_on
 
     reg [1:0]         state;
     reg [COUNT_WIDTH-1:0] cycle_cnt;
 
-    // Latched copies of the input matrices.  They are written only when a
-    // start request is accepted, so later activity on a_flat/b_flat cannot
-    // corrupt an operation that is already running.
     reg signed [IN_WIDTH-1:0] a_latched;
     reg signed [IN_WIDTH-1:0] b_latched;
 
-    // The array is cleared on the acceptance edge itself.  No valid operands
-    // are presented during that edge, so the clear cannot discard useful data.
     assign clear_acc = (state == STATE_IDLE) && start;
 
-    // Slot k of the latched matrices is driven combinationally so that the
-    // first element is available on the edge immediately after acceptance.
-    // a_out lane r carries A[r][k]; b_out lane c carries B[k][c].
     genvar lane;
     generate
         for (lane = 0; lane < ARRAY_SIZE; lane = lane + 1) begin : gen_operand_lanes
@@ -125,8 +100,7 @@ module matrix_controller #(
 
                 STATE_DRAIN: begin
                     if (cycle_cnt == DRAIN_CYCLES - 1) begin
-                        // The final MAC was committed on the previous edge,
-                        // so acc_in now holds the completed matrix.
+
                         result    <= acc_in;
                         busy      <= 1'b0;
                         done      <= 1'b1;

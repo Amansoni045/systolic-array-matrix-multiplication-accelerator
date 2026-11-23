@@ -1,9 +1,3 @@
-#!/usr/bin/env python3
-"""Run Member 2's array regressions; requires Icarus Verilog on PATH.
-
-Run from any working directory. Generated files stay in ignored sim/results
-and sim/waveforms directories. No other member's sources are modified.
-"""
 import argparse
 import csv
 import shutil
@@ -17,10 +11,9 @@ WAVES = ROOT / 'sim' / 'waveforms'
 CONFIGS = (
     (2, 8, 32), (4, 8, 32), (8, 8, 32),
     (2, 16, 48), (4, 16, 48), (8, 16, 48),
-    (4, 8, 16), (4, 16, 32),  # Minimum legal accumulator: wraparound.
-    (1, 8, 32), (3, 8, 32),   # No skew stages, and a non-power-of-two grid.
+    (4, 8, 16), (4, 16, 32),
+    (1, 8, 32), (3, 8, 32),
 )
-
 
 def run_command(command, log, timeout):
     completed = subprocess.run(command, cwd=ROOT, text=True, stdout=subprocess.PIPE,
@@ -30,7 +23,6 @@ def run_command(command, log, timeout):
         raise RuntimeError(f'Command failed ({completed.returncode}); see {log.relative_to(ROOT)}\n'
                            f'{completed.stdout[-4000:]}')
     return completed.stdout
-
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
@@ -83,7 +75,6 @@ def main():
         writer.writerows(rows)
     print(f'All {len(rows)} configurations passed. Measured results: {summary.relative_to(ROOT)}')
     return 0
-
 
 if __name__ == '__main__':
     try:

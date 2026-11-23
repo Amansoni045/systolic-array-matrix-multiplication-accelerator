@@ -1,11 +1,5 @@
 `timescale 1ns/1ps
 
-// Phase II top level: parameterized controller + scalable systolic array.
-//
-// The peripheral skew buffers live inside `systolic_array`, so the controller
-// streams the N x N matrices in natural row-major order, one k-slice per
-// clock edge.  The controller also owns operand latching and the LOAD/DRAIN
-// schedule, making the module a complete start/busy/done accelerator.
 module systolic_array_top #(
     parameter ARRAY_SIZE = 4,
     parameter DATA_WIDTH = 8,
@@ -23,7 +17,6 @@ module systolic_array_top #(
     output wire signed [ARRAY_SIZE*ARRAY_SIZE*ACC_WIDTH-1:0] result
 );
 
-    // synthesis translate_off
     initial begin
         if (ARRAY_SIZE < 1)
             $fatal(1, "systolic_array_top requires ARRAY_SIZE >= 1");
@@ -32,7 +25,6 @@ module systolic_array_top #(
         if (ACC_WIDTH < 2 * DATA_WIDTH)
             $fatal(1, "systolic_array_top requires ACC_WIDTH >= 2*DATA_WIDTH");
     end
-    // synthesis translate_on
 
     wire                                                 clear_acc_w;
     wire signed [ARRAY_SIZE*DATA_WIDTH-1:0]              a_lane_w;

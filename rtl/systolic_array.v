@@ -1,7 +1,5 @@
 `timescale 1ns/1ps
 
-// Unskewed lane r/c is delayed by its row/column index inside the core.
-// External slot k reaches PE(r,c) on sampling edge k+r+c (first edge = 0).
 module systolic_array #(
     parameter ARRAY_SIZE = 4,
     parameter DATA_WIDTH = 8,
@@ -21,12 +19,10 @@ module systolic_array #(
     wire a_valid_link [0:ARRAY_SIZE-1][0:ARRAY_SIZE];
     wire b_valid_link [0:ARRAY_SIZE][0:ARRAY_SIZE-1];
 
-    // synthesis translate_off
     initial begin
         if (ARRAY_SIZE < 1 || DATA_WIDTH < 1 || ACC_WIDTH < 2*DATA_WIDTH)
             $fatal(1, "Require ARRAY_SIZE >= 1, DATA_WIDTH >= 1, ACC_WIDTH >= 2*DATA_WIDTH");
     end
-    // synthesis translate_on
 
     genvar lane, stage, row, col;
     generate
